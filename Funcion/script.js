@@ -378,7 +378,19 @@ function verifyAll(){
   }
 
   // ── Mostrar resultados ──────────────────────────────────
-  showVerifyResults(results, g);
+  // Obtener salida actual del circuito
+const outVal = outs.length ? outs[0].out : null;
+
+// Mostrar alerta según la salida
+if(outVal === 1){
+  alert('🟢 SALIDA ENCENDIDA (1)\n\nEl circuito está activo. La compuerta ' + g.id + ' tiene señal en su salida.\n\nMotivo: ' + g.rule);
+} else if(outVal === 0){
+  alert('🔴 SALIDA APAGADA (0)\n\nEl circuito no tiene señal. La compuerta ' + g.id + ' tiene la salida inactiva.\n\nMotivo: ' + g.rule);
+} else {
+  alert('⚠️ Sin salida\n\nAgrega un OUTPUT al circuito para ver el resultado.');
+}
+
+showVerifyResults(results, g);
 }
 
 function showVerifyResults(results, g){
