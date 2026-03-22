@@ -350,6 +350,9 @@ function verifyAll(){
     // Test all combinations using the user's table answers as expected values
     const combos=g.inputs===1?[[0],[1]]:[[0,0],[0,1],[1,0],[1,1]];
     let circuitErrors=[];
+    // Guardar valores originales
+    const originalVals = ins.map(inp=>inp.val);
+
     for(let ci=0;ci<combos.length;ci++){
       const combo=combos[ci];
       ins.forEach((inp,i)=>{inp.val=combo[i]||0;inp.out=inp.val;});
@@ -370,6 +373,11 @@ function verifyAll(){
           circuitErrors.push(`Con ${inp}: tu tabla dice ${toD(userAns)} pero el circuito da ${toD(outVal)}`);
       }
     }
+
+    // Restaurar valores originales
+    ins.forEach((inp,i)=>{inp.val=originalVals[i];inp.out=originalVals[i];});
+    simCircuit();
+
     if(!circuitErrors.length){
       results.push({pass:true,msg:`¡Circuito correcto! La compuerta ${g.id} funciona perfectamente para todas las combinaciones.`,step:2});
     } else {
