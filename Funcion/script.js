@@ -378,7 +378,7 @@ function verifyAll(){
   }
 
 
-// ── Mostrar resultados ──────────────────────────────────
+// ── Mostrar resultado del OUTPUT ─────────────────────────
 const outVal = outs.length ? outs[0].out : null;
 
 if(outVal === null){
@@ -386,22 +386,11 @@ if(outVal === null){
   return;
 }
 
-// Verificar si el valor actual es correcto según las entradas actuales
-const insActual = ins;
-const expectedVal = g.inputs===1
-  ? g.fn(insActual[0]?.val||0)
-  : g.fn(insActual[0]?.val||0, insActual[1]?.val||0);
-
-const estadoSalida = outVal===1 ? '🟢 SALIDA ENCENDIDA (1)' : '🔴 SALIDA APAGADA (0)';
-const esCorrecto = outVal===expectedVal
-  ? '✓ CORRECTO — La salida es la esperada según la lógica ' + activeGate
-  : '✗ INCORRECTO — La salida no corresponde a la lógica ' + activeGate + '\nRevisa las conexiones o las entradas.';
-
-const entradas = g.inputs===1
-  ? 'A=' + (insActual[0]?.val||0)
-  : 'A=' + (insActual[0]?.val||0) + ', B=' + (insActual[1]?.val||0);
-
-alert(estadoSalida + '\n\nEntradas: ' + entradas + '\nSalida esperada: ' + expectedVal + '\n\n' + esCorrecto);
+if(outVal === 1){
+  alert('🟢 SALIDA ENCENDIDA\n\nEl OUTPUT está en 1 — el circuito tiene señal activa.');
+} else {
+  alert('🔴 SALIDA APAGADA\n\nEl OUTPUT está en 0 — el circuito no tiene señal.');
+}
 }
 
 function showVerifyResults(results, g){
