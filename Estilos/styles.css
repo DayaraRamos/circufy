@@ -23,6 +23,14 @@ html, body { width: 100%; min-height: 100%; background: var(--bg); color: var(--
 
 #bgc { position: fixed; inset: 0; z-index: 0; opacity: 0.18; pointer-events: none; }
 
+
+.main-logo {
+    height: 40px; /* Ajusta según el alto de tu header */
+    width: auto;  /* Mantiene la proporción */
+    display: block;
+    filter: drop-shadow(0 0 5px #00F2FF); /* Esto le da el efecto neón que tienes en la web */
+}
+
 /* ── NAVBAR ── */
 #navbar {
   position: sticky; top: 0; z-index: 100;
