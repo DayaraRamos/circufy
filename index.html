@@ -4,11 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Circufy — Simulador de Compuertas Lógicas</title>
-
-  <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
-
-  <!-- Estilos -->
   <link rel="stylesheet" href="Estilos/styles.css">
 </head>
 <body>
@@ -16,37 +12,95 @@
 <canvas id="bgc"></canvas>
 <div id="toast"></div>
 
-<header>
-  <div><div class="logo">⚡ CIRCUFY</div><div class="logo-sub">SIMULADOR DE COMPUERTAS LÓGICAS</div></div>
-  <div class="controls">
-    <span class="ctrl-label">MODO:</span>
+<!-- ── NAVBAR ── -->
+<nav id="navbar">
+  <div class="nav-logo">
+    <span class="nav-logo-text">⚡ CIRCUFY</span>
+    <span class="nav-logo-sub">ÁLGEBRA BOOLEANA</span>
+  </div>
+  <div class="nav-gates" id="navGates">
+    <!-- Generado por JS -->
+  </div>
+  <div class="nav-controls">
     <div class="toggle-mode">
-      <button class="tm-btn active" id="btn10" onclick="setMode('10')">1 / 0</button>
-      <button class="tm-btn" id="btnVF" onclick="setMode('VF')">V / F</button>
+      <button class="tm-btn active" id="btn10" onclick="setMode('10')">1/0</button>
+      <button class="tm-btn" id="btnVF" onclick="setMode('VF')">V/F</button>
     </div>
-    <span class="ctrl-label" style="margin-left:6px">FILAS:</span>
     <div class="rows-ctrl">
       <button class="rc-btn" onclick="removeRow()">−</button>
       <span class="rc-count" id="rowCount">4</span>
       <button class="rc-btn" onclick="addRow()">+</button>
     </div>
-    <button class="reset-btn" onclick="resetAll()">↺ LIMPIAR</button>
+    <button class="reset-btn" onclick="resetAll()">↺</button>
   </div>
-</header>
+</nav>
 
+<!-- ── MAIN ── -->
 <div class="page">
-  <!-- TABLE -->
-  <div class="section-title">// PASO 1 — COMPLETA LA TABLA DE VERDAD</div>
-  <div class="tt-wrap"><table class="tt"><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
 
-  <!-- CIRCUITS -->
-  <div class="circuit-section">
-    <div class="section-title">// PASO 2 — ARMA EL CIRCUITO (se desbloquea al completar cada columna)</div>
-    <div class="circuit-grid" id="circGrid"></div>
+  <!-- PASO 1: TABLA -->
+  <div class="section-block">
+    <div class="section-title">
+      <span class="step-badge">01</span>
+      COMPLETA LA TABLA DE VERDAD
+      <span class="section-hint">Rellena las 8 columnas — cada columna que completes desbloquea su circuito</span>
+    </div>
+    <div class="tt-wrap">
+      <table class="tt">
+        <thead id="thead"></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
   </div>
+
+  <!-- PASO 2: CIRCUITO (se muestra al seleccionar del navbar) -->
+  <div class="section-block" id="circuitSection" style="display:none">
+    <div class="section-title">
+      <span class="step-badge">02</span>
+      <span id="circuitSectionTitle">ARMA EL CIRCUITO</span>
+      <span class="section-hint">Coloca las piezas y conecta los cables para construir la compuerta</span>
+    </div>
+
+    <div class="circuit-layout">
+      <!-- LEFT: Canvas grande -->
+      <div class="circuit-main">
+        <div class="circuit-toolbar" id="circToolbar">
+          <!-- Herramientas generadas por JS -->
+        </div>
+        <div class="circuit-canvas-wrap">
+          <canvas id="mainCircCanvas"></canvas>
+        </div>
+        <div class="circuit-actions">
+          <button class="c-btn" onclick="clrMainCircuit()">↺ Limpiar</button>
+          <button class="c-btn verify-btn" onclick="verifyAll()">⚡ VERIFICAR</button>
+        </div>
+      </div>
+
+      <!-- RIGHT: Explicación + Tabla de verdad de referencia -->
+      <div class="circuit-side">
+        <div class="exp-card" id="expCard">
+          <!-- Generado por JS -->
+        </div>
+        <div class="ref-table-card">
+          <div class="ref-title">// TABLA DE REFERENCIA</div>
+          <table class="ref-tt" id="refTable"></table>
+        </div>
+        <div class="verify-result" id="verifyResult" style="display:none">
+          <!-- Resultado verificación -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mensaje inicial cuando no hay circuito seleccionado -->
+  <div class="empty-circuit" id="emptyCircuit">
+    <div class="ec-icon">🔒</div>
+    <div class="ec-title">Completa una columna para desbloquear su circuito</div>
+    <div class="ec-sub">Rellena las celdas de la tabla de verdad con 0 o 1 — cuando una columna esté correcta aparecerá en el navbar</div>
+  </div>
+
 </div>
 
-  <!-- Script principal -->
-  <script src="Funcion/script.js"></script>
+<script src="Funcion/script.js"></script>
 </body>
 </html>
