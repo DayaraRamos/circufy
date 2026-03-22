@@ -387,6 +387,7 @@ if(outVal === null){
 }
 
 // Verificar si el valor actual es correcto según las entradas actuales
+const insActual = ins;
 const expectedVal = g.inputs===1
   ? g.fn(insActual[0]?.val||0)
   : g.fn(insActual[0]?.val||0, insActual[1]?.val||0);
