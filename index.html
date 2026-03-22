@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Circufy — Simulador de Compuertas Lógicas</title>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="Estilos/styles.css">
+</head>
+<body>
+
+<canvas id="bgc"></canvas>
+<div id="toast"></div>
+
+<header>
+  <div><div class="logo">⚡ CIRCUFY</div><div class="logo-sub">SIMULADOR DE COMPUERTAS LÓGICAS</div></div>
+  <div class="controls">
+    <span class="ctrl-label">MODO:</span>
+    <div class="toggle-mode">
+      <button class="tm-btn active" id="btn10" onclick="setMode('10')">1 / 0</button>
+      <button class="tm-btn" id="btnVF" onclick="setMode('VF')">V / F</button>
+    </div>
+    <span class="ctrl-label" style="margin-left:6px">FILAS:</span>
+    <div class="rows-ctrl">
+      <button class="rc-btn" onclick="removeRow()">−</button>
+      <span class="rc-count" id="rowCount">4</span>
+      <button class="rc-btn" onclick="addRow()">+</button>
+    </div>
+    <button class="reset-btn" onclick="resetAll()">↺ LIMPIAR</button>
+  </div>
+</header>
+
+<div class="page">
+  <!-- TABLE -->
+  <div class="section-title">// PASO 1 — COMPLETA LA TABLA DE VERDAD</div>
+  <div class="tt-wrap"><table class="tt"><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+
+  <!-- CIRCUITS -->
+  <div class="circuit-section">
+    <div class="section-title">// PASO 2 — ARMA EL CIRCUITO (se desbloquea al completar cada columna)</div>
+    <div class="circuit-grid" id="circGrid"></div>
+  </div>
+</div>
+
+  <!-- Script principal -->
+  <script src="Funcion/script.js"></script>
+</body>
+</html>
