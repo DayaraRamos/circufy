@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" type="image/png" href="Estilos/logoLink.png" />
-  <!--<title>Circufy — Simulador de Compuertas Lógicas</title>-->
+  <title>Circufy — Simulador de Compuertas Lógicas</title>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="Estilos/styles.css">
 </head>
@@ -16,11 +15,16 @@
 <!-- ── NAVBAR ── -->
 <nav id="navbar">
   <div class="nav-logo">
-    <span class="nav-logo-text"><img src="Estilos/logo.png" alt="Logo Circufy" class="main-logo"></span>
-    <span class="nav-logo-sub">Matematicás Discretas</span>
+    <span class="nav-logo-text">⚡ CIRCUFY</span>
+    <span class="nav-logo-sub">ÁLGEBRA BOOLEANA</span>
   </div>
   <div class="nav-gates" id="navGates">
     <!-- Generado por JS -->
+  </div>
+  <div id="navFinalBtn" style="display:none;margin-left:8px">
+    <button class="nav-gate-btn unlocked" style="border-color:var(--gold);color:var(--gold);background:rgba(255,230,0,0.08)" onclick="openFinal()">
+      🏆 NIVEL FINAL
+    </button>
   </div>
   <div class="nav-controls">
     <div class="toggle-mode">
@@ -99,6 +103,85 @@
     <div class="ec-title">Completa una columna para desbloquear su circuito</div>
     <div class="ec-sub">Rellena las celdas de la tabla de verdad con 0 o 1 — cuando una columna esté correcta aparecerá en el navbar</div>
   </div>
+
+  <!-- NIVEL FINAL: CIRCUITO INTEGRADO -->
+  <div class="section-block" id="finalSection" style="display:none">
+    <div class="section-title" style="border-color:rgba(255,230,0,0.4)">
+      <span class="step-badge" style="background:var(--gold);color:#000">03</span>
+      <span style="color:var(--gold)">NIVEL FINAL — CIRCUITO INTEGRADO</span>
+      <span class="section-hint">Arma un circuito con mínimo 4 compuertas diferentes conectadas entre sí</span>
+    </div>
+
+    <!-- GUÍA PASO A PASO -->
+    <div class="guide-steps" id="guideSteps">
+      <div class="guide-step active" id="gstep-1">
+        <span class="gs-num">1</span>
+        <span class="gs-text">Agrega mínimo <strong>3 entradas</strong> (INPUT) al canvas</span>
+        <span class="gs-check" id="gscheck-1">○</span>
+      </div>
+      <div class="guide-step" id="gstep-2">
+        <span class="gs-num">2</span>
+        <span class="gs-text">Agrega mínimo <strong>4 compuertas diferentes</strong></span>
+        <span class="gs-check" id="gscheck-2">○</span>
+      </div>
+      <div class="guide-step" id="gstep-3">
+        <span class="gs-num">3</span>
+        <span class="gs-text">Conecta las compuertas en <strong>niveles</strong> (salida de una → entrada de otra)</span>
+        <span class="gs-check" id="gscheck-3">○</span>
+      </div>
+      <div class="guide-step" id="gstep-4">
+        <span class="gs-num">4</span>
+        <span class="gs-text">Agrega un <strong>OUTPUT</strong> al final del circuito</span>
+        <span class="gs-check" id="gscheck-4">○</span>
+      </div>
+      <div class="guide-step" id="gstep-5">
+        <span class="gs-num">5</span>
+        <span class="gs-text">Presiona <strong>⚡ ANALIZAR</strong> para ver la función booleana y tabla de verdad</span>
+        <span class="gs-check" id="gscheck-5">○</span>
+      </div>
+    </div>
+
+    <div class="final-layout">
+      <!-- LEFT: Canvas -->
+      <div class="circuit-main">
+        <div class="circuit-toolbar" id="finalToolbar"></div>
+        <div class="circuit-canvas-wrap">
+          <canvas id="finalCanvas"></canvas>
+        </div>
+        <div class="circuit-actions">
+          <button class="c-btn" onclick="clrFinal()">↺ Limpiar</button>
+          <button class="c-btn verify-btn" style="background:rgba(255,230,0,0.08);border-color:var(--gold);color:var(--gold)" onclick="analyzeFinal()">⚡ ANALIZAR CIRCUITO</button>
+        </div>
+      </div>
+
+      <!-- RIGHT: Resultado análisis -->
+      <div class="circuit-side">
+        <div class="final-info-card">
+          <div class="ref-title" style="color:var(--gold)">// ¿QUÉ DEBO HACER?</div>
+          <div style="font-size:0.75rem;line-height:1.7;color:var(--text);margin-top:8px">
+            Construye un circuito combinando <strong style="color:var(--neon)">mínimo 4 compuertas diferentes</strong>.<br><br>
+            Conecta la salida de una compuerta a la entrada de otra para crear <strong style="color:var(--gold)">niveles lógicos</strong>.<br><br>
+            Al analizar verás la <strong style="color:var(--purple)">función booleana</strong> de cada nivel y la tabla de verdad completa.
+          </div>
+          <div style="margin-top:10px;padding:8px;background:rgba(255,230,0,0.06);border-left:3px solid var(--gold);font-size:0.7rem;color:var(--gold)">
+            💡 Ejemplo: AND → OR → NOT → NAND conectadas en cadena
+          </div>
+        </div>
+
+        <div class="final-result" id="finalResult" style="display:none">
+          <!-- Generado por JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOCKED FINAL -->
+  <div class="empty-circuit" id="finalLocked" style="display:none;border-color:rgba(255,230,0,0.3)">
+    <div class="ec-icon">🏆</div>
+    <div class="ec-title" style="color:var(--gold)">NIVEL FINAL DESBLOQUEADO</div>
+    <div class="ec-sub">¡Completaste todas las compuertas! Haz clic en <strong style="color:var(--gold)">NIVEL FINAL</strong> en el navbar para el reto definitivo.</div>
+  </div>
+
 
 </div>
 

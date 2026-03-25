@@ -23,14 +23,6 @@ html, body { width: 100%; min-height: 100%; background: var(--bg); color: var(--
 
 #bgc { position: fixed; inset: 0; z-index: 0; opacity: 0.18; pointer-events: none; }
 
-
-.main-logo {
-    height: 40px; /* Ajusta según el alto de tu header */
-    width: auto;  /* Mantiene la proporción */
-    display: block;
-    filter: drop-shadow(0 0 5px #00F2FF); /* Esto le da el efecto neón que tienes en la web */
-}
-
 /* ── NAVBAR ── */
 #navbar {
   position: sticky; top: 0; z-index: 100;
@@ -281,3 +273,67 @@ table.ref-tt tr.hl td { background: rgba(0,220,255,0.07); }
 
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-thumb { background: var(--dim); }
+
+/* ── NIVEL FINAL ── */
+.guide-steps {
+  display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+}
+.guide-step {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; background: var(--panel);
+  border: 1px solid var(--dim); font-size: 0.72rem; color: var(--dim2);
+  flex: 1; min-width: 180px; transition: all 0.3s;
+}
+.guide-step.active { border-color: var(--gold); color: var(--text); }
+.guide-step.done { border-color: var(--green); background: rgba(0,255,170,0.05); color: var(--green); }
+.gs-num {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--dim); color: var(--dim2);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Orbitron', monospace; font-size: 0.6rem; font-weight: 700;
+  flex-shrink: 0;
+}
+.guide-step.active .gs-num { background: var(--gold); color: #000; }
+.guide-step.done .gs-num { background: var(--green); color: #000; }
+.gs-text { flex: 1; line-height: 1.4; }
+.gs-check { font-size: 0.9rem; flex-shrink: 0; }
+
+.final-layout {
+  display: grid; grid-template-columns: 1fr 320px; gap: 16px; align-items: start;
+}
+@media (max-width: 900px) { .final-layout { grid-template-columns: 1fr; } }
+
+.final-info-card {
+  background: var(--panel); border: 1px solid rgba(255,230,0,0.2); padding: 14px;
+}
+
+.final-result {
+  background: var(--panel); border: 1px solid rgba(255,230,0,0.3); padding: 14px;
+  margin-top: 12px;
+}
+.fr-title {
+  font-family: 'Orbitron', monospace; font-size: 0.62rem;
+  color: var(--gold); letter-spacing: 0.15em; margin-bottom: 10px;
+}
+.bool-level {
+  padding: 8px 10px; margin-bottom: 6px;
+  background: rgba(0,220,255,0.04); border-left: 3px solid var(--neon);
+  font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
+}
+.bool-level .bl-name { color: var(--gold); font-weight: bold; margin-bottom: 3px; }
+.bool-level .bl-fn { color: var(--neon); }
+.bool-level .bl-out { color: var(--green); font-size: 0.68rem; margin-top: 2px; }
+
+table.final-tt { width: 100%; border-collapse: collapse; font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; margin-top: 10px; }
+table.final-tt th { background: rgba(255,230,0,0.1); color: var(--gold); padding: 5px 8px; border: 1px solid rgba(255,230,0,0.2); text-align: center; font-size: 0.62rem; }
+table.final-tt td { padding: 5px 8px; text-align: center; border: 1px solid rgba(255,255,255,0.04); color: var(--dim2); font-size: 0.72rem; }
+table.final-tt td.v1 { color: var(--green); font-weight: bold; }
+table.final-tt td.v0 { color: var(--red); }
+table.final-tt tr.final-hl td { background: rgba(255,230,0,0.06); color: var(--text); }
+
+.req-check {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.72rem; padding: 5px 8px; margin-bottom: 4px;
+}
+.req-check.ok { color: var(--green); }
+.req-check.fail { color: var(--red); }

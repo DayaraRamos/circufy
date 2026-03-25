@@ -291,6 +291,7 @@ function checkColComplete(gi){
   if(all){
     showToast(`🎉 Columna ${GATES[gi].id} completa — ahora puedes armar el circuito en el navbar`,'ok');
     buildNavbar();
+    checkAllComplete();
   }
 }
 
@@ -350,9 +351,6 @@ function verifyAll(){
     // Test all combinations using the user's table answers as expected values
     const combos=g.inputs===1?[[0],[1]]:[[0,0],[0,1],[1,0],[1,1]];
     let circuitErrors=[];
-    // Guardar valores originales
-    const originalVals = ins.map(inp=>inp.val);
-
     for(let ci=0;ci<combos.length;ci++){
       const combo=combos[ci];
       ins.forEach((inp,i)=>{inp.val=combo[i]||0;inp.out=inp.val;});
@@ -373,11 +371,6 @@ function verifyAll(){
           circuitErrors.push(`Con ${inp}: tu tabla dice ${toD(userAns)} pero el circuito da ${toD(outVal)}`);
       }
     }
-
-    // Restaurar valores originales
-    ins.forEach((inp,i)=>{inp.val=originalVals[i];inp.out=originalVals[i];});
-    simCircuit();
-
     if(!circuitErrors.length){
       results.push({pass:true,msg:`¡Circuito correcto! La compuerta ${g.id} funciona perfectamente para todas las combinaciones.`,step:2});
     } else {
@@ -385,20 +378,8 @@ function verifyAll(){
     }
   }
 
-
-// ── Mostrar resultado del OUTPUT ─────────────────────────
-const outVal = outs.length ? outs[0].out : null;
-
-if(outVal === null){
-  alert('⚠️ Sin OUTPUT\nAgrega un componente OUTPUT al circuito.');
-  return;
-}
-
-if(outVal === 1){
-  alert('🟢 SALIDA ENCENDIDA\n\nEl OUTPUT está en 1 — el circuito tiene señal activa.');
-} else {
-  alert('🔴 SALIDA APAGADA\n\nEl OUTPUT está en 0 — el circuito no tiene señal.');
-}
+  // ── Mostrar resultados ──────────────────────────────────
+  showVerifyResults(results, g);
 }
 
 function showVerifyResults(results, g){
@@ -721,6 +702,421 @@ function resetAll(){initData();buildTable();CS.pieces=[];CS.wires=[];CS.wf=null;
 
 let toastT;
 function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.className=`show ${type}`;clearTimeout(toastT);toastT=setTimeout(()=>t.className='',2600);}
+
+
+
+// ── NIVEL FINAL ──────────────────────────────────────────────
+const FCS = { pieces:[], wires:[], tool:'MOVE', wf:null, drag:null, dox:0, doy:0, mx:200, my:210, af:0 };
+let finalCanvasReady = false;
+
+function checkAllComplete(){
+  const allDone = GATES.every((_,gi)=>calcProgress(gi)===100);
+  if(allDone){
+    document.getElementById('navFinalBtn').style.display='block';
+    document.getElementById('finalLocked').style.display='block';
+  }
+}
+
+function openFinal(){
+  // Hide other sections
+  document.getElementById('circuitSection').style.display='none';
+  document.getElementById('emptyCircuit').style.display='none';
+  document.getElementById('finalLocked').style.display='none';
+  document.getElementById('finalSection').style.display='block';
+  document.getElementById('finalResult').style.display='none';
+  FCS.pieces=[]; FCS.wires=[]; FCS.wf=null; FCS.drag=null; FCS.tool='MOVE';
+  buildFinalToolbar();
+  initFinalCanvas();
+  updateGuideSteps();
+  document.getElementById('finalSection').scrollIntoView({behavior:'smooth'});
+}
+
+function buildFinalToolbar(){
+  const tb = document.getElementById('finalToolbar');
+  const tools = [
+    {id:'MOVE', label:'MOVER', cursor:'default', icon:`<svg viewBox="0 0 16 16" fill="none"><path d="M8 1L8 15M1 8L15 8M8 1L5 4M8 1L11 4M8 15L5 12M8 15L11 12M1 8L4 5M1 8L4 11M15 8L12 5M15 8L12 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`},
+    {id:'INPUT', label:'INPUT', cursor:'cell', icon:`<svg viewBox="0 0 16 16" fill="none"><rect x="1" y="4" width="14" height="8" rx="2" stroke="currentColor" stroke-width="1.5"/><text x="8" y="11" text-anchor="middle" fill="currentColor" font-size="5" font-weight="bold">IN</text></svg>`},
+    {id:'GATE', label:'GATE', cursor:'cell', icon:`<svg viewBox="0 0 16 16" fill="none"><path d="M3 3L3 13L8 13Q14 13 14 8Q14 3 8 3Z" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity="0.15"/></svg>`},
+    {id:'OUTPUT', label:'OUTPUT', cursor:'cell', icon:`<svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><text x="8" y="11" text-anchor="middle" fill="currentColor" font-size="4.5" font-weight="bold">OUT</text></svg>`},
+    {id:'WIRE', label:'CABLE', cursor:'crosshair', icon:`<svg viewBox="0 0 16 16" fill="none"><line x1="1" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="2"/><circle cx="1" cy="8" r="2" fill="currentColor"/><circle cx="15" cy="8" r="2" fill="currentColor"/></svg>`},
+    {id:'DEL', label:'BORRAR', cursor:'not-allowed', icon:`<svg viewBox="0 0 16 16" fill="none"><line x1="3" y1="3" x2="13" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="13" y1="3" x2="3" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`},
+  ];
+  // Gate selector for final level
+  const gateSelect = `<select id="finalGateSelect" style="padding:5px 8px;background:var(--panel);border:1px solid var(--dim);color:var(--neon);font-family:'Share Tech Mono',monospace;font-size:0.65rem;cursor:pointer">
+    ${GATES.map(g=>`<option value="${g.id}">${g.id}</option>`).join('')}
+  </select>`;
+  tb.innerHTML = tools.map(t=>`
+    <button class="tool-btn${FCS.tool===t.id?' sel':''}" id="ftbtn-${t.id}" onclick="selFinalTool('${t.id}','${t.cursor}')" title="${t.label}">
+      ${t.icon} ${t.label}
+    </button>`).join('') + `<span style="font-size:0.62rem;color:var(--dim2);align-self:center">Compuerta:</span>` + gateSelect;
+}
+
+function selFinalTool(tool, cursor){
+  FCS.tool=tool; FCS.wf=null;
+  document.querySelectorAll('#finalToolbar .tool-btn').forEach(b=>b.classList.remove('sel'));
+  const btn=document.getElementById(`ftbtn-${tool}`); if(btn)btn.classList.add('sel');
+  const cv=document.getElementById('finalCanvas'); if(cv)cv.style.cursor=cursor||'default';
+}
+
+// Port helpers reusing oPort/iPort but for FCS
+function fOPort(id){
+  const p=FCS.pieces.find(x=>x.id===id); if(!p||p.type==='O')return null;
+  const bubble=['NAND','NOR','NOT','XNOR'];
+  const hb=p.type==='G'&&bubble.includes(p.gt);
+  return{x:p.x+p.w+(hb?10:0),y:p.y+p.h/2};
+}
+function fIPorts(p){
+  if(p.type==='I')return[];
+  if(p.type==='O')return[{x:p.x,y:p.y+p.h/2}];
+  const g=GATES.find(x=>x.id===p.gt); if(!g)return[];
+  if(g.inputs===1)return[{x:p.x,y:p.y+p.h/2}];
+  return[{x:p.x,y:p.y+p.h*.35},{x:p.x,y:p.y+p.h*.65}];
+}
+function fIPort(id,pi){const p=FCS.pieces.find(x=>x.id===id);if(!p)return null;return fIPorts(p)[pi]||null;}
+function fNearPort(mx,my,r){
+  for(const p of FCS.pieces){const op=fOPort(p.id);if(op&&Math.hypot(mx-op.x,my-op.y)<r)return{pid:p.id,type:'out',pi:0};}
+  for(const p of FCS.pieces){const ips=fIPorts(p);for(let i=0;i<ips.length;i++){if(Math.hypot(mx-ips[i].x,my-ips[i].y)<r)return{pid:p.id,type:'in',pi:i};}}
+  return null;
+}
+function fPAt(mx,my){
+  for(let i=FCS.pieces.length-1;i>=0;i--){const p=FCS.pieces[i];if(mx>=p.x-4&&mx<=p.x+p.w+4&&my>=p.y-4&&my<=p.y+p.h+4)return p;}
+  return null;
+}
+
+function simFinal(){
+  FCS.pieces.forEach(p=>{p.out=p.type==='I'?p.val:0;});
+  for(let pass=0;pass<15;pass++){
+    FCS.pieces.forEach(p=>{
+      if(p.type==='I')return;
+      const ips=fIPorts(p);
+      const iv=ips.map((_,i)=>{const w=FCS.wires.find(w=>w.tid===p.id&&w.tp===i);if(!w)return 0;const src=FCS.pieces.find(x=>x.id===w.fid);return src?src.out:0;});
+      if(p.type==='O'){p.out=iv[0]||0;}
+      else if(p.type==='G'){const g=GATES.find(x=>x.id===p.gt);p.out=g?(g.inputs===1?g.fn(iv[0]||0):g.fn(iv[0]||0,iv[1]||0)):0;}
+    });
+  }
+  FCS.wires.forEach(w=>{const src=FCS.pieces.find(x=>x.id===w.fid);w.v=src?src.out:0;});
+  updateGuideSteps();
+}
+
+function updateGuideSteps(){
+  const ins=FCS.pieces.filter(p=>p.type==='I');
+  const gates=FCS.pieces.filter(p=>p.type==='G');
+  const outs=FCS.pieces.filter(p=>p.type==='O');
+  const uniqueGates=[...new Set(gates.map(g=>g.gt))];
+  const hasLevels=FCS.wires.some(w=>{
+    const from=FCS.pieces.find(x=>x.id===w.fid);
+    const to=FCS.pieces.find(x=>x.id===w.tid);
+    return from&&to&&from.type==='G'&&to.type==='G';
+  });
+
+  const steps=[
+    ins.length>=3,
+    uniqueGates.length>=4,
+    hasLevels,
+    outs.length>=1,
+    false
+  ];
+
+  steps.forEach((done,i)=>{
+    const step=document.getElementById(`gstep-${i+1}`);
+    const check=document.getElementById(`gscheck-${i+1}`);
+    if(!step)return;
+    step.classList.remove('active','done');
+    if(done){step.classList.add('done');if(check)check.textContent='✓';}
+    else{
+      const prevDone=i===0||steps[i-1];
+      if(prevDone)step.classList.add('active');
+      if(check)check.textContent='○';
+    }
+  });
+}
+
+function clrFinal(){FCS.pieces=[];FCS.wires=[];FCS.wf=null;FCS.drag=null;document.getElementById('finalResult').style.display='none';updateGuideSteps();}
+
+// ── BOOLEAN FUNCTION GENERATOR ────────────────────────────────
+function getBoolExpr(pieceId, visited=new Set()){
+  if(visited.has(pieceId))return '?';
+  visited.add(pieceId);
+  const p=FCS.pieces.find(x=>x.id===pieceId);
+  if(!p)return '?';
+  if(p.type==='I') return p.label||'?';
+  if(p.type==='G'){
+    const ips=fIPorts(p);
+    const exprs=ips.map((_,i)=>{
+      const w=FCS.wires.find(w=>w.tid===p.id&&w.tp===i);
+      if(!w)return '?';
+      return getBoolExpr(w.fid, new Set(visited));
+    });
+    switch(p.gt){
+      case 'AND':  return exprs.length===2?`(${exprs[0]}·${exprs[1]})`:`(${exprs[0]})`;
+      case 'OR':   return exprs.length===2?`(${exprs[0]}+${exprs[1]})`:`(${exprs[0]})`;
+      case 'NOT':  return `¬${exprs[0]}`;
+      case 'NAND': return exprs.length===2?`¬(${exprs[0]}·${exprs[1]})`:`¬(${exprs[0]})`;
+      case 'NOR':  return exprs.length===2?`¬(${exprs[0]}+${exprs[1]})`:`¬(${exprs[0]})`;
+      case 'XOR':  return exprs.length===2?`(${exprs[0]}⊕${exprs[1]})`:`(${exprs[0]})`;
+      case 'XNOR': return exprs.length===2?`¬(${exprs[0]}⊕${exprs[1]})`:`¬(${exprs[0]})`;
+      case 'BUFFER': return exprs[0];
+      default: return '?';
+    }
+  }
+  return '?';
+}
+
+function analyzeFinal(){
+  const ins=FCS.pieces.filter(p=>p.type==='I');
+  const gates=FCS.pieces.filter(p=>p.type==='G');
+  const outs=FCS.pieces.filter(p=>p.type==='O');
+  const uniqueGates=[...new Set(gates.map(g=>g.gt))];
+
+  const el=document.getElementById('finalResult');
+  el.style.display='block';
+
+  // Requirements check
+  const reqs=[
+    {ok:ins.length>=3, msg:`Entradas (INPUT): ${ins.length} de mínimo 3`},
+    {ok:uniqueGates.length>=4, msg:`Compuertas diferentes: ${uniqueGates.length} de mínimo 4 (${uniqueGates.join(', ')||'ninguna'})`},
+    {ok:outs.length>=1, msg:`Salida (OUTPUT): ${outs.length>=1?'✓ presente':'✗ falta'}`},
+    {ok:FCS.wires.length>=4, msg:`Conexiones (cables): ${FCS.wires.length} de mínimo 4`},
+  ];
+
+  const allOk=reqs.every(r=>r.ok);
+  const reqsHtml=reqs.map(r=>`<div class="req-check ${r.ok?'ok':'fail'}">${r.ok?'✓':'✗'} ${r.msg}</div>`).join('');
+
+  if(!allOk){
+    el.innerHTML=`
+      <div class="fr-title">// REQUISITOS DEL CIRCUITO</div>
+      ${reqsHtml}
+      <div style="margin-top:10px;padding:8px;background:rgba(255,45,107,0.08);border:1px solid rgba(255,45,107,0.3);font-size:0.72rem;color:var(--red)">
+        ✗ El circuito no cumple todos los requisitos. Revisa los puntos en rojo.
+      </div>`;
+    showToast('✗ El circuito no cumple los requisitos mínimos','bad');
+    return;
+  }
+
+  // Assign labels to inputs
+  const labels=['A','B','C','D','E','F'];
+  ins.forEach((inp,i)=>{inp.label=labels[i]||`X${i}`;});
+
+  // Build boolean expressions per gate level
+  // Topological order
+  const ordered=[];
+  const visited=new Set();
+  function topoSort(pid){
+    if(visited.has(pid))return; visited.add(pid);
+    const p=FCS.pieces.find(x=>x.id===pid); if(!p||p.type==='I')return;
+    fIPorts(p).forEach((_,i)=>{const w=FCS.wires.find(w=>w.tid===pid&&w.tp===i);if(w)topoSort(w.fid);});
+    if(p.type==='G')ordered.push(p);
+  }
+  outs.forEach(o=>{const w=FCS.wires.find(w=>w.tid===o.id);if(w)topoSort(w.fid);});
+  gates.forEach(g=>{if(!visited.has(g.id))topoSort(g.id);});
+
+  // Generate bool expressions
+  const boolLevels=ordered.map((g,i)=>{
+    const expr=getBoolExpr(g.id);
+    return{gate:g.gt,level:i+1,expr,piece:g};
+  });
+
+  // Final output expression
+  const finalExpr=outs.map((o,i)=>{
+    const w=FCS.wires.find(w=>w.tid===o.id);
+    return w?getBoolExpr(w.fid):'?';
+  }).join(', ');
+
+  // Truth table
+  const inLabels=ins.map((inp,i)=>labels[i]||`X${i}`);
+  const combos=[];
+  for(let i=0;i<Math.pow(2,ins.length);i++){
+    const bits=ins.map((_,j)=>(i>>>(ins.length-1-j))&1);
+    combos.push(bits);
+  }
+
+  const gateHeaders=boolLevels.map(l=>`f${l.level}(${l.gate})`);
+  const outHeader=`SALIDA`;
+
+  const tableRows=combos.map(bits=>{
+    ins.forEach((inp,i)=>{inp.val=bits[i];inp.out=bits[i];});
+    simFinal();
+    const gateCols=boolLevels.map(l=>`<td class="v${l.piece.out}">${l.piece.out}</td>`).join('');
+    const outVal=outs[0]?.out??0;
+    return`<tr>${bits.map(b=>`<td class="v${b}">${b}</td>`).join('')}${gateCols}<td class="v${outVal}">${outVal}</td></tr>`;
+  }).join('');
+
+  // Restore originals
+  ins.forEach(inp=>{inp.val=0;inp.out=0;});simFinal();
+
+  const boolHtml=boolLevels.map(l=>`
+    <div class="bool-level">
+      <div class="bl-name">Nivel ${l.level} — Compuerta ${l.gate}</div>
+      <div class="bl-fn">f${l.level} = ${l.expr}</div>
+      <div class="bl-out">Operador: ${l.gate==='AND'?'Multiplicación (·)':l.gate==='OR'?'Suma (+)':l.gate==='NOT'?'Negación (¬)':l.gate==='NAND'?'NAND ¬(·)':l.gate==='NOR'?'NOR ¬(+)':l.gate==='XOR'?'XOR (⊕)':l.gate==='XNOR'?'XNOR ¬(⊕)':'Buffer'}</div>
+    </div>`).join('');
+
+  el.innerHTML=`
+    <div class="fr-title">// REQUISITOS</div>
+    ${reqsHtml}
+    <div style="margin-top:12px;padding:8px;background:rgba(0,255,170,0.08);border:1px solid rgba(0,255,170,0.3);font-size:0.75rem;color:var(--green);font-family:'Orbitron',monospace;text-align:center">
+      🎉 ¡CIRCUITO VÁLIDO! Cumple todos los requisitos
+    </div>
+
+    <div class="fr-title" style="margin-top:14px">// FUNCIÓN BOOLEANA POR NIVELES</div>
+    ${boolHtml}
+    <div style="margin-top:8px;padding:8px;background:rgba(255,230,0,0.08);border-left:3px solid var(--gold);font-family:'Share Tech Mono',monospace;font-size:0.78rem;color:var(--gold)">
+      F(${inLabels.join(',')}) = ${finalExpr}
+    </div>
+
+    <div class="fr-title" style="margin-top:14px">// TABLA DE VERDAD COMPLETA</div>
+    <div style="overflow-x:auto">
+      <table class="final-tt">
+        <thead><tr>
+          ${inLabels.map(l=>`<th>${l}</th>`).join('')}
+          ${gateHeaders.map(h=>`<th>${h}</th>`).join('')}
+          <th>${outHeader}</th>
+        </tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>`;
+
+  showToast('🎉 ¡Circuito analizado! Función booleana generada','ok');
+
+  // Mark step 5 done
+  const s5=document.getElementById('gstep-5');
+  const c5=document.getElementById('gscheck-5');
+  if(s5){s5.classList.add('done');if(c5)c5.textContent='✓';}
+}
+
+// ── FINAL CANVAS ──────────────────────────────────────────────
+function initFinalCanvas(){
+  const cv=document.getElementById('finalCanvas');
+  if(!cv)return;
+  if(finalCanvasReady){FCS.pieces=[];FCS.wires=[];simFinal();return;}
+  finalCanvasReady=true;
+  cv.width=cv.offsetWidth||800; cv.height=420;
+
+  const pos=e=>{const r=cv.getBoundingClientRect();const sx=cv.width/r.width,sy=cv.height/r.height;return{x:(e.clientX-r.left)*sx,y:(e.clientY-r.top)*sy};};
+  const tpos=e=>{const r=cv.getBoundingClientRect();const t=e.touches[0];const sx=cv.width/r.width,sy=cv.height/r.height;return{x:(t.clientX-r.left)*sx,y:(t.clientY-r.top)*sy};};
+
+  cv.addEventListener('mousedown',e=>{e.preventDefault();const p=pos(e);fOnDown(p.x,p.y);});
+  cv.addEventListener('mousemove',e=>{const p=pos(e);fOnMove(p.x,p.y);});
+  cv.addEventListener('mouseup',()=>fOnUp());
+  cv.addEventListener('mouseleave',()=>{FCS.mx=-999;FCS.my=-999;});
+  cv.addEventListener('dblclick',e=>{const p=pos(e);fOnDbl(p.x,p.y);});
+  cv.addEventListener('contextmenu',e=>e.preventDefault());
+  cv.addEventListener('touchstart',e=>{e.preventDefault();const p=tpos(e);fOnDown(p.x,p.y);},{passive:false});
+  cv.addEventListener('touchmove',e=>{e.preventDefault();const p=tpos(e);fOnMove(p.x,p.y);},{passive:false});
+  cv.addEventListener('touchend',e=>{e.preventDefault();fOnUp();},{passive:false});
+  window.addEventListener('resize',()=>{cv.width=cv.offsetWidth||800;});
+  (function loop(){requestAnimationFrame(loop);drawFinal();})();
+}
+
+function fOnDown(mx,my){
+  const t=FCS.tool;
+  if(t==='DEL'){
+    const p=fPAt(mx,my);
+    if(p){FCS.pieces=FCS.pieces.filter(x=>x.id!==p.id);FCS.wires=FCS.wires.filter(w=>w.fid!==p.id&&w.tid!==p.id);simFinal();}
+    else{FCS.wires=FCS.wires.filter(w=>{const fp=fOPort(w.fid),tp=fIPort(w.tid,w.tp);if(!fp||!tp)return false;const cx=(fp.x+tp.x)/2;for(let t=0;t<=1;t+=0.04){if(Math.hypot(mx-bz(fp.x,cx,cx,tp.x,t),my-bz(fp.y,fp.y,tp.y,tp.y,t))<14)return false;}return true;});simFinal();}
+    return;
+  }
+  if(t==='WIRE'){
+    const port=fNearPort(mx,my,22);
+    if(!FCS.wf){if(port&&port.type==='out'){FCS.wf=port;showToast('Cable iniciado ⚡ haz clic en una ENTRADA','ok');}else showToast('Haz clic cerca del punto de SALIDA','bad');}
+    else{
+      if(port&&port.type==='in'&&port.pid!==FCS.wf.pid){
+        if(!FCS.wires.find(w=>w.tid===port.pid&&w.tp===port.pi)){FCS.wires.push({fid:FCS.wf.pid,tid:port.pid,tp:port.pi,v:0});simFinal();showToast('✓ Cable conectado','ok');}
+        else showToast('Esa entrada ya tiene cable','bad');
+        FCS.wf=null;
+      } else if(port&&port.type==='out'){FCS.wf=port;}
+      else{FCS.wf=null;showToast('Cable cancelado','bad');}
+    }return;
+  }
+  if(t==='MOVE'){const p=fPAt(mx,my);if(p){FCS.drag=p;FCS.dox=mx-p.x;FCS.doy=my-p.y;document.getElementById('finalCanvas').style.cursor='grabbing';}return;}
+
+  const sel=document.getElementById('finalGateSelect');
+  const gid=sel?sel.value:'AND';
+  const g=GATES.find(x=>x.id===gid);
+  if(t==='INPUT') FCS.pieces.push({id:PID++,type:'I',x:mx-22,y:my-18,w:44,h:36,val:0,out:0,label:''});
+  else if(t==='GATE'&&g) FCS.pieces.push({id:PID++,type:'G',gt:gid,x:mx-36,y:my-26,w:72,h:52,out:0,col:g.color});
+  else if(t==='OUTPUT') FCS.pieces.push({id:PID++,type:'O',x:mx-18,y:my-18,w:36,h:36,out:0});
+  simFinal();
+}
+function fOnMove(mx,my){FCS.mx=mx;FCS.my=my;if(FCS.drag){FCS.drag.x=mx-FCS.dox;FCS.drag.y=my-FCS.doy;simFinal();}if(FCS.tool==='MOVE'&&!FCS.drag){const cv=document.getElementById('finalCanvas');if(cv)cv.style.cursor=fPAt(mx,my)?'grab':'default';}}
+function fOnUp(){if(FCS.drag){FCS.drag=null;const cv=document.getElementById('finalCanvas');if(cv&&FCS.tool==='MOVE')cv.style.cursor='default';}}
+function fOnDbl(mx,my){const p=fPAt(mx,my);if(p&&p.type==='I'){p.val^=1;p.out=p.val;simFinal();}}
+
+function drawFinal(){
+  const cv=document.getElementById('finalCanvas');if(!cv)return;
+  const ctx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  FCS.af=(FCS.af||0)+1;
+  ctx.clearRect(0,0,W,H);
+
+  // Grid
+  ctx.strokeStyle='rgba(255,230,0,0.04)';ctx.lineWidth=1;
+  for(let x=0;x<W;x+=28){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=28){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  // Wires
+  FCS.wires.forEach(w=>{
+    const fp=fOPort(w.fid),tp=fIPort(w.tid,w.tp);if(!fp||!tp)return;
+    const on=w.v,cx=(fp.x+tp.x)/2;
+    ctx.strokeStyle=on?'#00ffaa':'#1a3550';ctx.lineWidth=on?2.5:2;
+    ctx.shadowColor=on?'#00ffaa':'transparent';ctx.shadowBlur=on?8:0;
+    ctx.beginPath();ctx.moveTo(fp.x,fp.y);ctx.bezierCurveTo(cx,fp.y,cx,tp.y,tp.x,tp.y);ctx.stroke();ctx.shadowBlur=0;
+    if(on){const t=(FCS.af%60)/60;const px=bz(fp.x,cx,cx,tp.x,t),py=bz(fp.y,fp.y,tp.y,tp.y,t);ctx.beginPath();ctx.arc(px,py,4,0,Math.PI*2);ctx.fillStyle='#fff';ctx.shadowColor='#00ffaa';ctx.shadowBlur=14;ctx.fill();ctx.shadowBlur=0;}
+  });
+
+  // Wire preview
+  if(FCS.wf){const fp=fOPort(FCS.wf.pid);if(fp){const cx=(fp.x+FCS.mx)/2;ctx.strokeStyle='#ffe60099';ctx.lineWidth=2;ctx.setLineDash([7,5]);ctx.shadowColor='#ffe600';ctx.shadowBlur=8;ctx.beginPath();ctx.moveTo(fp.x,fp.y);ctx.bezierCurveTo(cx,fp.y,cx,FCS.my,FCS.mx,FCS.my);ctx.stroke();ctx.setLineDash([]);ctx.shadowBlur=0;ctx.beginPath();ctx.arc(fp.x,fp.y,8,0,Math.PI*2);ctx.strokeStyle='#ffe600';ctx.lineWidth=2;ctx.shadowColor='#ffe600';ctx.shadowBlur=18;ctx.stroke();ctx.shadowBlur=0;}}
+
+  // Port highlights
+  if(FCS.tool==='WIRE'){
+    FCS.pieces.forEach(p=>{if(!FCS.wf){const op=fOPort(p.id);if(op){ctx.beginPath();ctx.arc(op.x,op.y,9,0,Math.PI*2);ctx.strokeStyle='#ffe60055';ctx.lineWidth=1.5;ctx.stroke();}}else{fIPorts(p).forEach(ip=>{ctx.beginPath();ctx.arc(ip.x,ip.y,9,0,Math.PI*2);ctx.strokeStyle='#00ffaa55';ctx.lineWidth=1.5;ctx.stroke();})}});
+    const hp=fNearPort(FCS.mx,FCS.my,22);
+    if(hp){const isO=hp.type==='out';const pt=isO?fOPort(hp.pid):(fIPorts(FCS.pieces.find(x=>x.id===hp.pid))||[])[hp.pi];if(pt){ctx.beginPath();ctx.arc(pt.x,pt.y,12,0,Math.PI*2);ctx.strokeStyle=isO?'#ffe600':'#00ffaa';ctx.lineWidth=2.5;ctx.shadowColor=isO?'#ffe600':'#00ffaa';ctx.shadowBlur=22;ctx.stroke();ctx.shadowBlur=0;}}
+  }
+
+  // Draw pieces (reuse drawP but with final canvas context)
+  FCS.pieces.forEach(p=>drawFinalPiece(ctx,p));
+}
+
+function drawFinalPiece(ctx,p){
+  const{x,y,w,h}=p;
+  if(p.type==='I'){
+    const c=p.val?'#00ffaa':'#ff2d6b';
+    ctx.strokeStyle=c;ctx.fillStyle=c+'18';ctx.lineWidth=2;ctx.shadowColor=c;ctx.shadowBlur=p.val?14:3;
+    ctx.beginPath();ctx.roundRect(x,y,w,h,4);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
+    ctx.fillStyle='#4a7090';ctx.font='bold 8px Share Tech Mono';ctx.textAlign='center';ctx.fillText(p.label||'IN',x+w/2,y+13);
+    ctx.fillStyle=c;ctx.font='bold 16px Orbitron,monospace';ctx.textAlign='center';ctx.shadowColor=c;ctx.shadowBlur=p.val?14:0;
+    ctx.fillText(p.val,x+w/2,y+h-7);ctx.shadowBlur=0;
+    ctx.beginPath();ctx.arc(x+w,y+h/2,5,0,Math.PI*2);ctx.fillStyle=p.val?'#00ffaa':'#0d1e30';ctx.strokeStyle=c;ctx.lineWidth=1.5;ctx.shadowColor=c;ctx.shadowBlur=p.val?10:0;ctx.fill();ctx.stroke();ctx.shadowBlur=0;
+    ctx.fillStyle='#1a3550';ctx.font='7px Rajdhani';ctx.textAlign='center';ctx.fillText('2x clic',x+w/2,y+h+10);
+    return;
+  }
+  if(p.type==='O'){
+    const c=p.out?'#00ffaa':'#ff2d6b';
+    ctx.strokeStyle=c;ctx.fillStyle=c+'18';ctx.lineWidth=2;ctx.shadowColor=c;ctx.shadowBlur=p.out?20:5;
+    ctx.beginPath();ctx.arc(x+w/2,y+h/2,h/2,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
+    ctx.fillStyle=c;ctx.font='bold 16px Orbitron,monospace';ctx.textAlign='center';ctx.shadowColor=c;ctx.shadowBlur=p.out?16:0;
+    ctx.fillText(p.out,x+w/2,y+h/2+6);ctx.shadowBlur=0;
+    ctx.fillStyle=c+'99';ctx.font='7px Share Tech Mono';ctx.textAlign='center';ctx.fillText('OUT',x+w/2,y-7);
+    ctx.beginPath();ctx.arc(x,y+h/2,5,0,Math.PI*2);ctx.fillStyle='#0d1e30';ctx.strokeStyle=c;ctx.lineWidth=1.5;ctx.fill();ctx.stroke();
+    return;
+  }
+  if(p.type==='G'){
+    const col=p.col||'#00dcff',id=p.gt;
+    ctx.strokeStyle=col;ctx.lineWidth=2;ctx.fillStyle=col+'15';ctx.shadowColor=col;ctx.shadowBlur=7;
+    ctx.beginPath();
+    if(id==='AND'||id==='NAND'){ctx.moveTo(x,y);ctx.lineTo(x+w*.5,y);ctx.arcTo(x+w,y,x+w,y+h/2,h/2);ctx.arcTo(x+w,y+h,x+w*.5,y+h,h/2);ctx.lineTo(x,y+h);ctx.closePath();}
+    else if(id==='OR'||id==='NOR'){ctx.moveTo(x,y);ctx.quadraticCurveTo(x+w*.3,y+h/2,x,y+h);ctx.quadraticCurveTo(x+w*.6,y+h,x+w,y+h/2);ctx.quadraticCurveTo(x+w*.6,y,x,y);}
+    else if(id==='XOR'||id==='XNOR'){ctx.moveTo(x+7,y);ctx.quadraticCurveTo(x+w*.3+7,y+h/2,x+7,y+h);ctx.quadraticCurveTo(x+w*.6,y+h,x+w,y+h/2);ctx.quadraticCurveTo(x+w*.6,y,x+7,y);ctx.closePath();ctx.moveTo(x,y);ctx.quadraticCurveTo(x+w*.25,y+h/2,x,y+h);}
+    else{ctx.moveTo(x,y);ctx.lineTo(x+w*(id==='NOT'?.8:1),y+h/2);ctx.lineTo(x,y+h);ctx.closePath();}
+    ctx.fill();ctx.stroke();ctx.shadowBlur=0;
+    if(['NAND','NOR','NOT','XNOR'].includes(id)){ctx.beginPath();ctx.arc(x+w+5,y+h/2,5,0,Math.PI*2);ctx.fillStyle='#03080f';ctx.fill();ctx.strokeStyle=col;ctx.shadowColor=col;ctx.shadowBlur=9;ctx.stroke();ctx.shadowBlur=0;}
+    ctx.fillStyle=col;ctx.font='bold 9px Share Tech Mono,monospace';ctx.textAlign='center';ctx.fillText(id,x+w/2+(id==='XOR'||id==='XNOR'?3:0),y+h/2+3);
+    fIPorts(p).forEach(ip=>{ctx.beginPath();ctx.arc(ip.x,ip.y,5,0,Math.PI*2);ctx.fillStyle='#0d1e30';ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.fill();ctx.stroke();});
+    const op=fOPort(p.id);
+    if(op){ctx.beginPath();ctx.arc(op.x,op.y,5,0,Math.PI*2);ctx.fillStyle=p.out?'#00ffaa':'#0d1e30';ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.shadowColor=p.out?'#00ffaa':'transparent';ctx.shadowBlur=p.out?10:0;ctx.fill();ctx.stroke();ctx.shadowBlur=0;}
+  }
+}
 
 // ── INIT ─────────────────────────────────────────────────────
 initData();
