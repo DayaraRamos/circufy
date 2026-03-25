@@ -145,8 +145,6 @@ function buildToolbar(){
     {id:'GATE', icon:`<svg viewBox="0 0 16 16" fill="none"><path d="M3 3L3 13L8 13Q14 13 14 8Q14 3 8 3Z" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity="0.15"/></svg>`, label:'GATE', cursor:'cell'},
     {id:'OUTPUT', icon:`<svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><text x="8" y="11" text-anchor="middle" fill="currentColor" font-size="4.5" font-weight="bold">OUT</text></svg>`, label:'OUTPUT', cursor:'cell'},
     {id:'WIRE', icon:`<svg viewBox="0 0 16 16" fill="none"><line x1="1" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="2"/><circle cx="1" cy="8" r="2" fill="currentColor"/><circle cx="15" cy="8" r="2" fill="currentColor"/></svg>`, label:'CABLE', cursor:'crosshair'},
-    // --- NUEVA HERRAMIENTA TEXTO ---
-    {id:'TEXT', icon:`<svg viewBox="0 0 16 16" fill="none"><path d="M4 3h8v2H9v8H7V5H4V3z" fill="currentColor"/></svg>`, label:'TEXTO', cursor:'text'},
     {id:'DEL', icon:`<svg viewBox="0 0 16 16" fill="none"><line x1="3" y1="3" x2="13" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="13" y1="3" x2="3" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`, label:'BORRAR', cursor:'not-allowed'},
   ];
   tb.innerHTML = tools.map(t=>`
@@ -167,9 +165,8 @@ function selTool(tool, cursor){
     INPUT:'Haz clic en el canvas para colocar una entrada',
     GATE:'Haz clic en el canvas para colocar la compuerta',
     OUTPUT:'Haz clic en el canvas para colocar la salida',
-    WIRE:'Clic en SALIDA → luego clic en ENTRADA',
-    TEXT:'Haz clic en el canvas para escribir un comentario o nota',
-    DEL:'Haz clic sobre una pieza, cable o texto para eliminarlo'
+    WIRE:'Clic en el punto de SALIDA (derecho) → luego clic en el punto de ENTRADA (izquierdo)',
+    DEL:'Haz clic sobre una pieza o cable para eliminarlo'
   };
   const hbar = document.querySelector('.circuit-hint-bar');
   if(hbar) hbar.textContent = hints[tool]||'';
@@ -456,7 +453,6 @@ function initMainCanvas(){
 
 function onDown(mx,my){
   const t=CS.tool;
-  // Borrar
   if(t==='DEL'){
     const p=pAt(mx,my);
     if(p){CS.pieces=CS.pieces.filter(x=>x.id!==p.id);CS.wires=CS.wires.filter(w=>w.fid!==p.id&&w.tid!==p.id);simCircuit();}
@@ -469,10 +465,22 @@ function onDown(mx,my){
       });simCircuit();
     }return;
   }
-  // Cables
-  if(t==='WIRE'){ /* ... (tu código actual de cables sin cambios) ... */ return; }
-  
-  // Mover
+  if(t==='WIRE'){
+    const port=nearPort(mx,my,22);
+    if(!CS.wf){
+      if(port&&port.type==='out'){CS.wf=port;showToast('Cable iniciado ⚡ haz clic en una ENTRADA','ok');}
+      else showToast('Haz clic cerca del punto de SALIDA (lado derecho)','bad');
+    } else {
+      if(port&&port.type==='in'&&port.pid!==CS.wf.pid){
+        if(!CS.wires.find(w=>w.tid===port.pid&&w.tp===port.pi)){
+          CS.wires.push({fid:CS.wf.pid,tid:port.pid,tp:port.pi,v:0});
+          simCircuit();showToast('✓ Cable conectado','ok');
+        } else showToast('Esa entrada ya tiene cable','bad');
+        CS.wf=null;
+      } else if(port&&port.type==='out'){CS.wf=port;}
+      else{CS.wf=null;showToast('Cable cancelado','bad');}
+    }return;
+  }
   if(t==='MOVE'){
     const p=pAt(mx,my);
     if(p){CS.drag=p;CS.dox=mx-p.x;CS.doy=my-p.y;
@@ -480,39 +488,12 @@ function onDown(mx,my){
       if(cv)cv.style.cursor='grabbing';}
     return;
   }
-
-  // --- NUEVA LÓGICA: CREAR TEXTO ---
-  if(t==='TEXT'){
-    const txt = prompt("Escribe tu comentario:");
-    if(txt && txt.trim()){
-      CS.pieces.push({id:PID++, type:'T', val:txt.trim(), x:mx, y:my});
-      simCircuit();
-    }
-    return;
-  }
-
-  // Crear Piezas (Gate, Input, Output)
   const gi=GATES.findIndex(g=>g.id===activeGate);
   const g=GATES[gi];
   if(t==='INPUT') CS.pieces.push({id:PID++,type:'I',x:mx-22,y:my-18,w:44,h:36,val:0,out:0});
   else if(t==='GATE'&&g) CS.pieces.push({id:PID++,type:'G',gt:g.id,x:mx-36,y:my-26,w:72,h:52,out:0,col:g.color});
   else if(t==='OUTPUT') CS.pieces.push({id:PID++,type:'O',x:mx-18,y:my-18,w:36,h:36,out:0});
   simCircuit();
-}
-
-// Actualizado para detectar el área del texto
-function pAt(mx,my){
-  for(let i=CS.pieces.length-1;i>=0;i--){
-    const p=CS.pieces[i];
-    if(p.type === 'T'){
-        // Área aproximada del texto para poder hacer clic sobre él
-        const tw = p.val.length * 7; 
-        if(mx >= p.x - 5 && mx <= p.x + tw && my >= p.y - 15 && my <= p.y + 5) return p;
-    } else {
-        if(mx>=p.x-4&&mx<=p.x+p.w+4&&my>=p.y-4&&my<=p.y+p.h+4)return p;
-    }
-  }
-  return null;
 }
 
 function onMove(mx,my){
@@ -640,30 +621,6 @@ function drawCanvas(){
 
 function drawP(ctx,p){
   const{x,y,w,h}=p;
-
-  // --- DIBUJAR COMENTARIOS ---
-  if(p.type === 'T'){
-      ctx.font = 'bold 11px "Share Tech Mono", monospace';
-      ctx.textAlign = 'left';
-      
-      // Sombra neón para el texto
-      ctx.shadowColor = 'rgba(255, 230, 0, 0.4)';
-      ctx.shadowBlur = 4;
-      ctx.fillStyle = 'var(--gold)';
-      ctx.fillText(p.val.toUpperCase(), x, y);
-      
-      // Pequeña línea decorativa lateral
-      ctx.beginPath();
-      ctx.moveTo(x - 6, y - 10);
-      ctx.lineTo(x - 6, y + 2);
-      ctx.strokeStyle = 'var(--gold)';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-      
-      ctx.shadowBlur = 0;
-      return;
-  }
-
   if(p.type==='I'){
     const c=p.val?'#00ffaa':'#ff2d6b';
     ctx.strokeStyle=c;ctx.fillStyle=c+'18';ctx.lineWidth=2;ctx.shadowColor=c;ctx.shadowBlur=p.val?14:3;
@@ -694,16 +651,11 @@ function drawP(ctx,p){
     else if(id==='XOR'||id==='XNOR'){ctx.moveTo(x+7,y);ctx.quadraticCurveTo(x+w*.3+7,y+h/2,x+7,y+h);ctx.quadraticCurveTo(x+w*.6,y+h,x+w,y+h/2);ctx.quadraticCurveTo(x+w*.6,y,x+7,y);ctx.closePath();ctx.moveTo(x,y);ctx.quadraticCurveTo(x+w*.25,y+h/2,x,y+h);}
     else{ctx.moveTo(x,y);ctx.lineTo(x+w*(id==='NOT'?.8:1),y+h/2);ctx.lineTo(x,y+h);ctx.closePath();}
     ctx.fill();ctx.stroke();ctx.shadowBlur=0;
-    
-    // Círculo de negación si aplica
-    if(['NAND','NOR','NOT','XNOR'].includes(id)){
-        ctx.beginPath();ctx.arc(x+w+5,y+h/2,5,0,Math.PI*2);ctx.fillStyle='#03080f';ctx.fill();ctx.strokeStyle=col;ctx.shadowColor=col;ctx.shadowBlur=9;
-        ctx.stroke();ctx.shadowBlur=0;
-    }
-    
-    // Texto de la compuerta
-    ctx.fillStyle=col;ctx.font='bold 10px Orbitron,monospace';ctx.textAlign='center';
-    ctx.fillText(id, x+w/2, y+h/2+4);
+    if(['NAND','NOR','NOT','XNOR'].includes(id)){ctx.beginPath();ctx.arc(x+w+5,y+h/2,5,0,Math.PI*2);ctx.fillStyle='#03080f';ctx.fill();ctx.strokeStyle=col;ctx.shadowColor=col;ctx.shadowBlur=9;ctx.stroke();ctx.shadowBlur=0;}
+    ctx.fillStyle=col;ctx.font='bold 9px Share Tech Mono,monospace';ctx.textAlign='center';ctx.fillText(id,x+w/2+(id==='XOR'||id==='XNOR'?3:0),y+h/2+3);
+    iPorts(p).forEach(ip=>{ctx.beginPath();ctx.arc(ip.x,ip.y,5,0,Math.PI*2);ctx.fillStyle='#0d1e30';ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.fill();ctx.stroke();});
+    const op=oPort(p.id);
+    if(op){ctx.beginPath();ctx.arc(op.x,op.y,5,0,Math.PI*2);ctx.fillStyle=p.out?'#00ffaa':'#0d1e30';ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.shadowColor=p.out?'#00ffaa':'transparent';ctx.shadowBlur=p.out?10:0;ctx.fill();ctx.stroke();ctx.shadowBlur=0;}
   }
 }
 
