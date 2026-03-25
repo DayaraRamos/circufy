@@ -172,7 +172,7 @@ td.rn { font-size: 0.62rem; color: var(--dim2); background: rgba(0,0,0,0.3) !imp
 .tool-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
 
 .circuit-canvas-wrap { position: relative; width: 100%; }
-#mainCircCanvas { display: block; width: 100%; height: 420px; }
+#finalCanvas { display: block; width: 100%; height: 600px; }
 
 .circuit-hint-bar {
   padding: 5px 12px; font-size: 0.6rem; color: var(--dim2);

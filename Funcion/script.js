@@ -80,9 +80,8 @@ let mode = '10';
 let numRows = 4;
 let answers = [];
 let inputs = [];
-let activeGate = null; // gate id currently shown
+let activeGate = null;
 
-// Circuit state (single shared canvas)
 const CS = { pieces:[], wires:[], tool:'MOVE', wf:null, drag:null, dox:0, doy:0, mx:160, my:210, af:0 };
 let PID = 1;
 
@@ -122,36 +121,19 @@ function openCircuit(gid){
   const gi = GATES.findIndex(g=>g.id===gid);
   const g = GATES[gi];
 
-  // Show circuit section, hide empty state
   document.getElementById('circuitSection').style.display='block';
   document.getElementById('emptyCircuit').style.display='none';
-
-  // Update title
   document.getElementById('circuitSectionTitle').textContent = `ARMA EL CIRCUITO — ${gid}`;
 
-  // Reset circuit
   CS.pieces=[]; CS.wires=[]; CS.wf=null; CS.drag=null;
   CS.tool='MOVE';
 
-  // Build toolbar
   buildToolbar();
-
-  // Build explanation
   buildExpCard(g);
-
-  // Build reference table
   buildRefTable(gi);
-
-  // Hide verify result
   document.getElementById('verifyResult').style.display='none';
-
-  // Update navbar
   buildNavbar();
-
-  // Scroll to circuit
   document.getElementById('circuitSection').scrollIntoView({behavior:'smooth'});
-
-  // Init canvas if needed
   initMainCanvas();
 }
 
@@ -192,7 +174,6 @@ function selTool(tool, cursor){
 
 function buildExpCard(g){
   const card = document.getElementById('expCard');
-  const rows = g.inputs===1?[[0],[1]]:[[0,0],[0,1],[1,0],[1,1]];
   card.innerHTML = `
     <div class="exp-gate-name" style="color:${g.color}">⚡ ${g.id}</div>
     <div class="exp-rule">${g.rule}</div>
@@ -228,7 +209,6 @@ function buildRefTable(gi){
 
 // ── TABLE ────────────────────────────────────────────────────
 function buildTable(){
-  // HEAD
   let h = `<tr><th class="inp-h" style="width:28px">#</th><th class="inp-h">A</th><th class="inp-h">B</th>`;
   GATES.forEach((g,gi)=>{
     h+=`<th class="gate-h" style="min-width:78px">
@@ -239,7 +219,6 @@ function buildTable(){
   });
   document.getElementById('thead').innerHTML = h+'</tr>';
 
-  // BODY
   const tb = document.getElementById('tbody'); tb.innerHTML='';
   for(let ri=0;ri<numRows;ri++){
     const{A,B}=inputs[ri];
@@ -310,14 +289,13 @@ function updateAllProgress(){
   });
 }
 
-// ── VERIFY ALL (tabla + circuito) ────────────────────────────
+// ── VERIFY ALL ────────────────────────────────────────────────
 function verifyAll(){
   if(!activeGate){showToast('Selecciona una compuerta del navbar primero','bad');return;}
   const gi=GATES.findIndex(g=>g.id===activeGate);
   const g=GATES[gi];
   const results=[];
 
-  // ── PASO 1: Verificar tabla ──────────────────────────────
   const tableComplete=Array.from({length:numRows},(_,r)=>answers[r][gi]!==null).every(Boolean);
   if(!tableComplete){
     results.push({pass:false,msg:`La columna <strong>${g.id}</strong> en la tabla no está completa.`,step:1});
@@ -336,7 +314,6 @@ function verifyAll(){
     }
   }
 
-  // ── PASO 2: Verificar circuito ───────────────────────────
   const ins=CS.pieces.filter(p=>p.type==='I');
   const outs=CS.pieces.filter(p=>p.type==='O');
   const gates=CS.pieces.filter(p=>p.type==='G'&&p.gt===g.id);
@@ -348,7 +325,6 @@ function verifyAll(){
   } else if(ins.length<g.inputs){
     results.push({pass:false,msg:`El circuito necesita ${g.inputs} INPUT(s). Tienes ${ins.length}.`,step:2});
   } else {
-    // Test all combinations using the user's table answers as expected values
     const combos=g.inputs===1?[[0],[1]]:[[0,0],[0,1],[1,0],[1,1]];
     let circuitErrors=[];
     for(let ci=0;ci<combos.length;ci++){
@@ -357,14 +333,12 @@ function verifyAll(){
       simCircuit();
       const outVal=outs[0].out;
       const expected=g.inputs===1?g.fn(combo[0]):g.fn(combo[0],combo[1]);
-      // Also check against what user wrote in table (if available)
       const rowIdx=ci<numRows?ci:null;
       const userAns=rowIdx!==null&&answers[rowIdx][gi]!==null?answers[rowIdx][gi]:null;
       if(outVal!==expected){
         const inp=g.inputs===2?`A=${toD(combo[0])}, B=${toD(combo[1])}`:`A=${toD(combo[0])}`;
         circuitErrors.push(`Con ${inp}: circuito da ${toD(outVal)}, debería dar ${toD(expected)}`);
       }
-      // Validate against user's table: if user wrote a value, circuit must match it
       if(userAns!==null&&outVal!==userAns){
         const inp=g.inputs===2?`A=${toD(combo[0])}, B=${toD(combo[1])}`:`A=${toD(combo[0])}`;
         if(!circuitErrors.find(e=>e.includes(inp)))
@@ -378,7 +352,6 @@ function verifyAll(){
     }
   }
 
-  // ── Mostrar resultados ──────────────────────────────────
   showVerifyResults(results, g);
 }
 
@@ -410,51 +383,72 @@ function showVerifyResults(results, g){
 
   if(allPass){
     showToast(`🎉 ¡Perfecto! Compuerta ${g.id} dominada al 100%`,'ok');
-    // Mark as done in navbar
     const navBtn=document.getElementById(`nav-${g.id}`);
     if(navBtn) navBtn.innerHTML=`${g.id} <span class="done-icon">★</span>`;
   }
 }
 
-// ── CANVAS ───────────────────────────────────────────────────
-let canvasReady=false;
+// ── CANVAS PRINCIPAL ──────────────────────────────────────────
+let canvasReady = false;
+
+function resizeCanvas(cv) {
+  if (!cv) return;
+  const wrap = cv.parentElement;
+  const w = wrap ? wrap.clientWidth : 900;
+  cv.width = w > 0 ? w : 900;
+}
 
 function initMainCanvas(){
-  const cv=document.getElementById('mainCircCanvas');
-  if(!cv)return;
-  if(canvasReady)return;
-  canvasReady=true;
+  const cv = document.getElementById('mainCircCanvas');
+  if(!cv) return;
+  if(canvasReady) return;
+  canvasReady = true;
 
-  cv.width=cv.offsetWidth||800;
-  cv.height=420;
+  // ── FIX: medir bien el ancho real del contenedor ──
+  resizeCanvas(cv);
+  cv.height = 500;
 
-  const pos=e=>{const r=cv.getBoundingClientRect();const sx=cv.width/r.width,sy=cv.height/r.height;return{x:(e.clientX-r.left)*sx,y:(e.clientY-r.top)*sy};};
-  const tpos=e=>{const r=cv.getBoundingClientRect();const t=e.touches[0];const sx=cv.width/r.width,sy=cv.height/r.height;return{x:(t.clientX-r.left)*sx,y:(t.clientY-r.top)*sy};};
+  const pos = e => {
+    const r = cv.getBoundingClientRect();
+    const sx = cv.width / r.width, sy = cv.height / r.height;
+    return { x: (e.clientX - r.left) * sx, y: (e.clientY - r.top) * sy };
+  };
+  const tpos = e => {
+    const r = cv.getBoundingClientRect();
+    const t = e.touches[0];
+    const sx = cv.width / r.width, sy = cv.height / r.height;
+    return { x: (t.clientX - r.left) * sx, y: (t.clientY - r.top) * sy };
+  };
 
-  cv.addEventListener('mousedown',e=>{e.preventDefault();const p=pos(e);onDown(p.x,p.y);});
-  cv.addEventListener('mousemove',e=>{const p=pos(e);onMove(p.x,p.y);});
-  cv.addEventListener('mouseup',()=>onUp());
-  cv.addEventListener('mouseleave',()=>{CS.mx=-999;CS.my=-999;});
-  cv.addEventListener('dblclick',e=>{const p=pos(e);onDbl(p.x,p.y);});
-  cv.addEventListener('contextmenu',e=>e.preventDefault());
-  cv.addEventListener('touchstart',e=>{e.preventDefault();const p=tpos(e);onDown(p.x,p.y);},{passive:false});
-  cv.addEventListener('touchmove',e=>{e.preventDefault();const p=tpos(e);onMove(p.x,p.y);},{passive:false});
-  cv.addEventListener('touchend',e=>{e.preventDefault();onUp();},{passive:false});
+  cv.addEventListener('mousedown', e => { e.preventDefault(); const p = pos(e); onDown(p.x, p.y); });
+  cv.addEventListener('mousemove', e => { const p = pos(e); onMove(p.x, p.y); });
+  cv.addEventListener('mouseup', () => onUp());
+  cv.addEventListener('mouseleave', () => { CS.mx = -999; CS.my = -999; });
+  cv.addEventListener('dblclick', e => { const p = pos(e); onDbl(p.x, p.y); });
+  cv.addEventListener('contextmenu', e => e.preventDefault());
+  cv.addEventListener('touchstart', e => { e.preventDefault(); const p = tpos(e); onDown(p.x, p.y); }, { passive: false });
+  cv.addEventListener('touchmove', e => { e.preventDefault(); const p = tpos(e); onMove(p.x, p.y); }, { passive: false });
+  cv.addEventListener('touchend', e => { e.preventDefault(); onUp(); }, { passive: false });
 
-  // Add hint bar
-  const wrap=cv.parentElement;
+  // Hint bar
+  const wrap = cv.parentElement;
   if(!wrap.querySelector('.circuit-hint-bar')){
-    const hbar=document.createElement('div');
-    hbar.className='circuit-hint-bar';
-    hbar.textContent='Selecciona una herramienta del toolbar para comenzar';
+    const hbar = document.createElement('div');
+    hbar.className = 'circuit-hint-bar';
+    hbar.textContent = 'Selecciona una herramienta del toolbar para comenzar';
     wrap.appendChild(hbar);
   }
 
-  window.addEventListener('resize',()=>{
-    cv.width=cv.offsetWidth||800;
+  // ── FIX: resize correcto al cambiar tamaño de ventana ──
+  window.addEventListener('resize', () => {
+    resizeCanvas(cv);
+    const fc = document.getElementById('finalCanvas');
+    if(fc) resizeCanvas(fc);
+    bgc.width = window.innerWidth;
+    bgc.height = window.innerHeight;
   });
 
-  (function loop(){requestAnimationFrame(loop);drawCanvas();})();
+  (function loop(){ requestAnimationFrame(loop); drawCanvas(); })();
 }
 
 function onDown(mx,my){
@@ -505,7 +499,6 @@ function onDown(mx,my){
 function onMove(mx,my){
   CS.mx=mx;CS.my=my;
   if(CS.drag){CS.drag.x=mx-CS.dox;CS.drag.y=my-CS.doy;simCircuit();}
-  // hover cursor in MOVE mode
   if(CS.tool==='MOVE'&&!CS.drag){
     const cv=document.getElementById('mainCircCanvas');
     if(cv)cv.style.cursor=pAt(mx,my)?'grab':'default';
@@ -523,7 +516,6 @@ function onUp(){
 function onDbl(mx,my){
   const p=pAt(mx,my);
   if(p&&p.type==='I'){p.val^=1;p.out=p.val;simCircuit();
-    // Update ref table highlight
     if(activeGate){const gi=GATES.findIndex(g=>g.id===activeGate);buildRefTable(gi);}
   }
 }
@@ -582,12 +574,10 @@ function drawCanvas(){
 
   ctx.clearRect(0,0,W,H);
 
-  // Grid
   ctx.strokeStyle='rgba(0,220,255,0.04)';ctx.lineWidth=1;
   for(let x=0;x<W;x+=28){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
   for(let y=0;y<H;y+=28){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
 
-  // Wires
   CS.wires.forEach(w=>{
     const fp=oPort(w.fid),tp=iPort(w.tid,w.tp);if(!fp||!tp)return;
     const on=w.v,cx=(fp.x+tp.x)/2;
@@ -601,7 +591,6 @@ function drawCanvas(){
     }
   });
 
-  // Wire preview
   if(CS.wf){
     const fp=oPort(CS.wf.pid);
     if(fp){
@@ -614,7 +603,6 @@ function drawCanvas(){
     }
   }
 
-  // Port highlights in WIRE mode
   if(CS.tool==='WIRE'){
     CS.pieces.forEach(p=>{
       if(!CS.wf){const op=oPort(p.id);if(op){ctx.beginPath();ctx.arc(op.x,op.y,9,0,Math.PI*2);ctx.strokeStyle='#ffe60055';ctx.lineWidth=1.5;ctx.stroke();}}
@@ -628,7 +616,6 @@ function drawCanvas(){
     }
   }
 
-  // Pieces
   CS.pieces.forEach(p=>drawP(ctx,p));
 }
 
@@ -703,8 +690,6 @@ function resetAll(){initData();buildTable();CS.pieces=[];CS.wires=[];CS.wf=null;
 let toastT;
 function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.className=`show ${type}`;clearTimeout(toastT);toastT=setTimeout(()=>t.className='',2600);}
 
-
-
 // ── NIVEL FINAL ──────────────────────────────────────────────
 const FCS = { pieces:[], wires:[], tool:'MOVE', wf:null, drag:null, dox:0, doy:0, mx:200, my:210, af:0 };
 let finalCanvasReady = false;
@@ -718,7 +703,6 @@ function checkAllComplete(){
 }
 
 function openFinal(){
-  // Hide other sections
   document.getElementById('circuitSection').style.display='none';
   document.getElementById('emptyCircuit').style.display='none';
   document.getElementById('finalLocked').style.display='none';
@@ -741,7 +725,6 @@ function buildFinalToolbar(){
     {id:'WIRE', label:'CABLE', cursor:'crosshair', icon:`<svg viewBox="0 0 16 16" fill="none"><line x1="1" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="2"/><circle cx="1" cy="8" r="2" fill="currentColor"/><circle cx="15" cy="8" r="2" fill="currentColor"/></svg>`},
     {id:'DEL', label:'BORRAR', cursor:'not-allowed', icon:`<svg viewBox="0 0 16 16" fill="none"><line x1="3" y1="3" x2="13" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="13" y1="3" x2="3" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`},
   ];
-  // Gate selector for final level
   const gateSelect = `<select id="finalGateSelect" style="padding:5px 8px;background:var(--panel);border:1px solid var(--dim);color:var(--neon);font-family:'Share Tech Mono',monospace;font-size:0.65rem;cursor:pointer">
     ${GATES.map(g=>`<option value="${g.id}">${g.id}</option>`).join('')}
   </select>`;
@@ -758,7 +741,6 @@ function selFinalTool(tool, cursor){
   const cv=document.getElementById('finalCanvas'); if(cv)cv.style.cursor=cursor||'default';
 }
 
-// Port helpers reusing oPort/iPort but for FCS
 function fOPort(id){
   const p=FCS.pieces.find(x=>x.id===id); if(!p||p.type==='O')return null;
   const bubble=['NAND','NOR','NOT','XNOR'];
@@ -809,13 +791,7 @@ function updateGuideSteps(){
     return from&&to&&from.type==='G'&&to.type==='G';
   });
 
-  const steps=[
-    ins.length>=3,
-    uniqueGates.length>=4,
-    hasLevels,
-    outs.length>=1,
-    false
-  ];
+  const steps=[ins.length>=3, uniqueGates.length>=4, hasLevels, outs.length>=1, false];
 
   steps.forEach((done,i)=>{
     const step=document.getElementById(`gstep-${i+1}`);
@@ -833,7 +809,6 @@ function updateGuideSteps(){
 
 function clrFinal(){FCS.pieces=[];FCS.wires=[];FCS.wf=null;FCS.drag=null;document.getElementById('finalResult').style.display='none';updateGuideSteps();}
 
-// ── BOOLEAN FUNCTION GENERATOR ────────────────────────────────
 function getBoolExpr(pieceId, visited=new Set()){
   if(visited.has(pieceId))return '?';
   visited.add(pieceId);
@@ -871,7 +846,6 @@ function analyzeFinal(){
   const el=document.getElementById('finalResult');
   el.style.display='block';
 
-  // Requirements check
   const reqs=[
     {ok:ins.length>=3, msg:`Entradas (INPUT): ${ins.length} de mínimo 3`},
     {ok:uniqueGates.length>=4, msg:`Compuertas diferentes: ${uniqueGates.length} de mínimo 4 (${uniqueGates.join(', ')||'ninguna'})`},
@@ -893,12 +867,9 @@ function analyzeFinal(){
     return;
   }
 
-  // Assign labels to inputs
   const labels=['A','B','C','D','E','F'];
   ins.forEach((inp,i)=>{inp.label=labels[i]||`X${i}`;});
 
-  // Build boolean expressions per gate level
-  // Topological order
   const ordered=[];
   const visited=new Set();
   function topoSort(pid){
@@ -910,19 +881,16 @@ function analyzeFinal(){
   outs.forEach(o=>{const w=FCS.wires.find(w=>w.tid===o.id);if(w)topoSort(w.fid);});
   gates.forEach(g=>{if(!visited.has(g.id))topoSort(g.id);});
 
-  // Generate bool expressions
   const boolLevels=ordered.map((g,i)=>{
     const expr=getBoolExpr(g.id);
     return{gate:g.gt,level:i+1,expr,piece:g};
   });
 
-  // Final output expression
   const finalExpr=outs.map((o,i)=>{
     const w=FCS.wires.find(w=>w.tid===o.id);
     return w?getBoolExpr(w.fid):'?';
   }).join(', ');
 
-  // Truth table
   const inLabels=ins.map((inp,i)=>labels[i]||`X${i}`);
   const combos=[];
   for(let i=0;i<Math.pow(2,ins.length);i++){
@@ -931,7 +899,6 @@ function analyzeFinal(){
   }
 
   const gateHeaders=boolLevels.map(l=>`f${l.level}(${l.gate})`);
-  const outHeader=`SALIDA`;
 
   const tableRows=combos.map(bits=>{
     ins.forEach((inp,i)=>{inp.val=bits[i];inp.out=bits[i];});
@@ -941,7 +908,6 @@ function analyzeFinal(){
     return`<tr>${bits.map(b=>`<td class="v${b}">${b}</td>`).join('')}${gateCols}<td class="v${outVal}">${outVal}</td></tr>`;
   }).join('');
 
-  // Restore originals
   ins.forEach(inp=>{inp.val=0;inp.out=0;});simFinal();
 
   const boolHtml=boolLevels.map(l=>`
@@ -957,20 +923,18 @@ function analyzeFinal(){
     <div style="margin-top:12px;padding:8px;background:rgba(0,255,170,0.08);border:1px solid rgba(0,255,170,0.3);font-size:0.75rem;color:var(--green);font-family:'Orbitron',monospace;text-align:center">
       🎉 ¡CIRCUITO VÁLIDO! Cumple todos los requisitos
     </div>
-
     <div class="fr-title" style="margin-top:14px">// FUNCIÓN BOOLEANA POR NIVELES</div>
     ${boolHtml}
     <div style="margin-top:8px;padding:8px;background:rgba(255,230,0,0.08);border-left:3px solid var(--gold);font-family:'Share Tech Mono',monospace;font-size:0.78rem;color:var(--gold)">
       F(${inLabels.join(',')}) = ${finalExpr}
     </div>
-
     <div class="fr-title" style="margin-top:14px">// TABLA DE VERDAD COMPLETA</div>
     <div style="overflow-x:auto">
       <table class="final-tt">
         <thead><tr>
           ${inLabels.map(l=>`<th>${l}</th>`).join('')}
           ${gateHeaders.map(h=>`<th>${h}</th>`).join('')}
-          <th>${outHeader}</th>
+          <th>SALIDA</th>
         </tr></thead>
         <tbody>${tableRows}</tbody>
       </table>
@@ -978,7 +942,6 @@ function analyzeFinal(){
 
   showToast('🎉 ¡Circuito analizado! Función booleana generada','ok');
 
-  // Mark step 5 done
   const s5=document.getElementById('gstep-5');
   const c5=document.getElementById('gscheck-5');
   if(s5){s5.classList.add('done');if(c5)c5.textContent='✓';}
@@ -986,26 +949,46 @@ function analyzeFinal(){
 
 // ── FINAL CANVAS ──────────────────────────────────────────────
 function initFinalCanvas(){
-  const cv=document.getElementById('finalCanvas');
-  if(!cv)return;
-  if(finalCanvasReady){FCS.pieces=[];FCS.wires=[];simFinal();return;}
-  finalCanvasReady=true;
-  cv.width=cv.offsetWidth||800; cv.height=420;
+  const cv = document.getElementById('finalCanvas');
+  if(!cv) return;
 
-  const pos=e=>{const r=cv.getBoundingClientRect();const sx=cv.width/r.width,sy=cv.height/r.height;return{x:(e.clientX-r.left)*sx,y:(e.clientY-r.top)*sy};};
-  const tpos=e=>{const r=cv.getBoundingClientRect();const t=e.touches[0];const sx=cv.width/r.width,sy=cv.height/r.height;return{x:(t.clientX-r.left)*sx,y:(t.clientY-r.top)*sy};};
+  // ── FIX PRINCIPAL: medir el ancho real y asignar altura grande ──
+  const doInit = () => {
+    resizeCanvas(cv);
+    cv.height = 600;
 
-  cv.addEventListener('mousedown',e=>{e.preventDefault();const p=pos(e);fOnDown(p.x,p.y);});
-  cv.addEventListener('mousemove',e=>{const p=pos(e);fOnMove(p.x,p.y);});
-  cv.addEventListener('mouseup',()=>fOnUp());
-  cv.addEventListener('mouseleave',()=>{FCS.mx=-999;FCS.my=-999;});
-  cv.addEventListener('dblclick',e=>{const p=pos(e);fOnDbl(p.x,p.y);});
-  cv.addEventListener('contextmenu',e=>e.preventDefault());
-  cv.addEventListener('touchstart',e=>{e.preventDefault();const p=tpos(e);fOnDown(p.x,p.y);},{passive:false});
-  cv.addEventListener('touchmove',e=>{e.preventDefault();const p=tpos(e);fOnMove(p.x,p.y);},{passive:false});
-  cv.addEventListener('touchend',e=>{e.preventDefault();fOnUp();},{passive:false});
-  window.addEventListener('resize',()=>{cv.width=cv.offsetWidth||800;});
-  (function loop(){requestAnimationFrame(loop);drawFinal();})();
+    if(finalCanvasReady){
+      FCS.pieces=[]; FCS.wires=[]; simFinal(); return;
+    }
+    finalCanvasReady = true;
+
+    const pos = e => {
+      const r = cv.getBoundingClientRect();
+      const sx = cv.width / r.width, sy = cv.height / r.height;
+      return { x: (e.clientX - r.left) * sx, y: (e.clientY - r.top) * sy };
+    };
+    const tpos = e => {
+      const r = cv.getBoundingClientRect();
+      const t = e.touches[0];
+      const sx = cv.width / r.width, sy = cv.height / r.height;
+      return { x: (t.clientX - r.left) * sx, y: (t.clientY - r.top) * sy };
+    };
+
+    cv.addEventListener('mousedown', e => { e.preventDefault(); const p = pos(e); fOnDown(p.x, p.y); });
+    cv.addEventListener('mousemove', e => { const p = pos(e); fOnMove(p.x, p.y); });
+    cv.addEventListener('mouseup', () => fOnUp());
+    cv.addEventListener('mouseleave', () => { FCS.mx = -999; FCS.my = -999; });
+    cv.addEventListener('dblclick', e => { const p = pos(e); fOnDbl(p.x, p.y); });
+    cv.addEventListener('contextmenu', e => e.preventDefault());
+    cv.addEventListener('touchstart', e => { e.preventDefault(); const p = tpos(e); fOnDown(p.x, p.y); }, { passive: false });
+    cv.addEventListener('touchmove', e => { e.preventDefault(); const p = tpos(e); fOnMove(p.x, p.y); }, { passive: false });
+    cv.addEventListener('touchend', e => { e.preventDefault(); fOnUp(); }, { passive: false });
+
+    (function loop(){ requestAnimationFrame(loop); drawFinal(); })();
+  };
+
+  // Esperar un frame para que el DOM esté visible y tenga dimensiones reales
+  requestAnimationFrame(() => setTimeout(doInit, 30));
 }
 
 function fOnDown(mx,my){
@@ -1038,7 +1021,12 @@ function fOnDown(mx,my){
   else if(t==='OUTPUT') FCS.pieces.push({id:PID++,type:'O',x:mx-18,y:my-18,w:36,h:36,out:0});
   simFinal();
 }
-function fOnMove(mx,my){FCS.mx=mx;FCS.my=my;if(FCS.drag){FCS.drag.x=mx-FCS.dox;FCS.drag.y=my-FCS.doy;simFinal();}if(FCS.tool==='MOVE'&&!FCS.drag){const cv=document.getElementById('finalCanvas');if(cv)cv.style.cursor=fPAt(mx,my)?'grab':'default';}}
+
+function fOnMove(mx,my){
+  FCS.mx=mx; FCS.my=my;
+  if(FCS.drag){FCS.drag.x=mx-FCS.dox;FCS.drag.y=my-FCS.doy;simFinal();}
+  if(FCS.tool==='MOVE'&&!FCS.drag){const cv=document.getElementById('finalCanvas');if(cv)cv.style.cursor=fPAt(mx,my)?'grab':'default';}
+}
 function fOnUp(){if(FCS.drag){FCS.drag=null;const cv=document.getElementById('finalCanvas');if(cv&&FCS.tool==='MOVE')cv.style.cursor='default';}}
 function fOnDbl(mx,my){const p=fPAt(mx,my);if(p&&p.type==='I'){p.val^=1;p.out=p.val;simFinal();}}
 
@@ -1049,12 +1037,11 @@ function drawFinal(){
   FCS.af=(FCS.af||0)+1;
   ctx.clearRect(0,0,W,H);
 
-  // Grid
+  // Grid dorada para el nivel final
   ctx.strokeStyle='rgba(255,230,0,0.04)';ctx.lineWidth=1;
   for(let x=0;x<W;x+=28){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
   for(let y=0;y<H;y+=28){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
 
-  // Wires
   FCS.wires.forEach(w=>{
     const fp=fOPort(w.fid),tp=fIPort(w.tid,w.tp);if(!fp||!tp)return;
     const on=w.v,cx=(fp.x+tp.x)/2;
@@ -1064,17 +1051,14 @@ function drawFinal(){
     if(on){const t=(FCS.af%60)/60;const px=bz(fp.x,cx,cx,tp.x,t),py=bz(fp.y,fp.y,tp.y,tp.y,t);ctx.beginPath();ctx.arc(px,py,4,0,Math.PI*2);ctx.fillStyle='#fff';ctx.shadowColor='#00ffaa';ctx.shadowBlur=14;ctx.fill();ctx.shadowBlur=0;}
   });
 
-  // Wire preview
   if(FCS.wf){const fp=fOPort(FCS.wf.pid);if(fp){const cx=(fp.x+FCS.mx)/2;ctx.strokeStyle='#ffe60099';ctx.lineWidth=2;ctx.setLineDash([7,5]);ctx.shadowColor='#ffe600';ctx.shadowBlur=8;ctx.beginPath();ctx.moveTo(fp.x,fp.y);ctx.bezierCurveTo(cx,fp.y,cx,FCS.my,FCS.mx,FCS.my);ctx.stroke();ctx.setLineDash([]);ctx.shadowBlur=0;ctx.beginPath();ctx.arc(fp.x,fp.y,8,0,Math.PI*2);ctx.strokeStyle='#ffe600';ctx.lineWidth=2;ctx.shadowColor='#ffe600';ctx.shadowBlur=18;ctx.stroke();ctx.shadowBlur=0;}}
 
-  // Port highlights
   if(FCS.tool==='WIRE'){
     FCS.pieces.forEach(p=>{if(!FCS.wf){const op=fOPort(p.id);if(op){ctx.beginPath();ctx.arc(op.x,op.y,9,0,Math.PI*2);ctx.strokeStyle='#ffe60055';ctx.lineWidth=1.5;ctx.stroke();}}else{fIPorts(p).forEach(ip=>{ctx.beginPath();ctx.arc(ip.x,ip.y,9,0,Math.PI*2);ctx.strokeStyle='#00ffaa55';ctx.lineWidth=1.5;ctx.stroke();})}});
     const hp=fNearPort(FCS.mx,FCS.my,22);
     if(hp){const isO=hp.type==='out';const pt=isO?fOPort(hp.pid):(fIPorts(FCS.pieces.find(x=>x.id===hp.pid))||[])[hp.pi];if(pt){ctx.beginPath();ctx.arc(pt.x,pt.y,12,0,Math.PI*2);ctx.strokeStyle=isO?'#ffe600':'#00ffaa';ctx.lineWidth=2.5;ctx.shadowColor=isO?'#ffe600':'#00ffaa';ctx.shadowBlur=22;ctx.stroke();ctx.shadowBlur=0;}}
   }
 
-  // Draw pieces (reuse drawP but with final canvas context)
   FCS.pieces.forEach(p=>drawFinalPiece(ctx,p));
 }
 
