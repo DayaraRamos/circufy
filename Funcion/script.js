@@ -137,6 +137,7 @@ function openCircuit(gid){
   initMainCanvas();
 }
 
+// ── TOOLBAR PRINCIPAL (con NOTA) ──────────────────────────────
 function buildToolbar(){
   const tb = document.getElementById('circToolbar');
   const tools = [
@@ -145,6 +146,8 @@ function buildToolbar(){
     {id:'GATE', icon:`<svg viewBox="0 0 16 16" fill="none"><path d="M3 3L3 13L8 13Q14 13 14 8Q14 3 8 3Z" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity="0.15"/></svg>`, label:'GATE', cursor:'cell'},
     {id:'OUTPUT', icon:`<svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><text x="8" y="11" text-anchor="middle" fill="currentColor" font-size="4.5" font-weight="bold">OUT</text></svg>`, label:'OUTPUT', cursor:'cell'},
     {id:'WIRE', icon:`<svg viewBox="0 0 16 16" fill="none"><line x1="1" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="2"/><circle cx="1" cy="8" r="2" fill="currentColor"/><circle cx="15" cy="8" r="2" fill="currentColor"/></svg>`, label:'CABLE', cursor:'crosshair'},
+    // ── NUEVA HERRAMIENTA: NOTA ──
+    {id:'NOTE', icon:`<svg viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><line x1="4" y1="6" x2="12" y2="6" stroke="currentColor" stroke-width="1.2"/><line x1="4" y1="9" x2="9" y2="9" stroke="currentColor" stroke-width="1.2"/></svg>`, label:'NOTA', cursor:'text'},
     {id:'DEL', icon:`<svg viewBox="0 0 16 16" fill="none"><line x1="3" y1="3" x2="13" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="13" y1="3" x2="3" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`, label:'BORRAR', cursor:'not-allowed'},
   ];
   tb.innerHTML = tools.map(t=>`
@@ -166,6 +169,7 @@ function selTool(tool, cursor){
     GATE:'Haz clic en el canvas para colocar la compuerta',
     OUTPUT:'Haz clic en el canvas para colocar la salida',
     WIRE:'Clic en el punto de SALIDA (derecho) → luego clic en el punto de ENTRADA (izquierdo)',
+    NOTE:'Haz clic en el canvas para agregar una nota de texto al circuito',
     DEL:'Haz clic sobre una pieza o cable para eliminarlo'
   };
   const hbar = document.querySelector('.circuit-hint-bar');
@@ -404,7 +408,6 @@ function initMainCanvas(){
   if(canvasReady) return;
   canvasReady = true;
 
-  // ── FIX: medir bien el ancho real del contenedor ──
   resizeCanvas(cv);
   cv.height = 500;
 
@@ -430,7 +433,6 @@ function initMainCanvas(){
   cv.addEventListener('touchmove', e => { e.preventDefault(); const p = tpos(e); onMove(p.x, p.y); }, { passive: false });
   cv.addEventListener('touchend', e => { e.preventDefault(); onUp(); }, { passive: false });
 
-  // Hint bar
   const wrap = cv.parentElement;
   if(!wrap.querySelector('.circuit-hint-bar')){
     const hbar = document.createElement('div');
@@ -439,7 +441,6 @@ function initMainCanvas(){
     wrap.appendChild(hbar);
   }
 
-  // ── FIX: resize correcto al cambiar tamaño de ventana ──
   window.addEventListener('resize', () => {
     resizeCanvas(cv);
     const fc = document.getElementById('finalCanvas');
@@ -451,6 +452,7 @@ function initMainCanvas(){
   (function loop(){ requestAnimationFrame(loop); drawCanvas(); })();
 }
 
+// ── onDown — incluye lógica NOTE ──────────────────────────────
 function onDown(mx,my){
   const t=CS.tool;
   if(t==='DEL'){
@@ -488,6 +490,14 @@ function onDown(mx,my){
       if(cv)cv.style.cursor='grabbing';}
     return;
   }
+  // ── NOTA ──
+  if(t==='NOTE'){
+    const txt=prompt('Escribe el texto de la nota:','');
+    if(txt&&txt.trim()){
+      CS.pieces.push({id:PID++,type:'N',x:mx-60,y:my-18,w:140,h:36,text:txt.trim()});
+    }
+    return;
+  }
   const gi=GATES.findIndex(g=>g.id===activeGate);
   const g=GATES[gi];
   if(t==='INPUT') CS.pieces.push({id:PID++,type:'I',x:mx-22,y:my-18,w:44,h:36,val:0,out:0});
@@ -513,22 +523,28 @@ function onUp(){
   }
 }
 
+// ── onDbl: doble clic en NOTA permite editarla ────────────────
 function onDbl(mx,my){
   const p=pAt(mx,my);
   if(p&&p.type==='I'){p.val^=1;p.out=p.val;simCircuit();
     if(activeGate){const gi=GATES.findIndex(g=>g.id===activeGate);buildRefTable(gi);}
   }
+  // Editar nota con doble clic
+  if(p&&p.type==='N'){
+    const nuevo=prompt('Editar nota:',p.text);
+    if(nuevo!==null&&nuevo.trim()) p.text=nuevo.trim();
+  }
 }
 
 // ── PORT HELPERS ─────────────────────────────────────────────
 function oPort(id){
-  const p=CS.pieces.find(x=>x.id===id);if(!p||p.type==='O')return null;
+  const p=CS.pieces.find(x=>x.id===id);if(!p||p.type==='O'||p.type==='N')return null;
   const bubble=['NAND','NOR','NOT','XNOR'];
   const hb=p.type==='G'&&bubble.includes(p.gt);
   return{x:p.x+p.w+(hb?10:0),y:p.y+p.h/2};
 }
 function iPorts(p){
-  if(p.type==='I')return[];
+  if(p.type==='I'||p.type==='N')return[];
   if(p.type==='O')return[{x:p.x,y:p.y+p.h/2}];
   const g=GATES.find(x=>x.id===p.gt);if(!g)return[];
   if(g.inputs===1)return[{x:p.x,y:p.y+p.h/2}];
@@ -551,7 +567,7 @@ function simCircuit(){
   CS.pieces.forEach(p=>{p.out=p.type==='I'?p.val:0;});
   for(let pass=0;pass<12;pass++){
     CS.pieces.forEach(p=>{
-      if(p.type==='I')return;
+      if(p.type==='I'||p.type==='N')return;
       const ips=iPorts(p);
       const iv=ips.map((_,i)=>{const w=CS.wires.find(w=>w.tid===p.id&&w.tp===i);if(!w)return 0;const src=CS.pieces.find(x=>x.id===w.fid);return src?src.out:0;});
       if(p.type==='O'){p.out=iv[0]||0;}
@@ -619,8 +635,67 @@ function drawCanvas(){
   CS.pieces.forEach(p=>drawP(ctx,p));
 }
 
+// ── drawP — incluye tipo 'N' (NOTA) ──────────────────────────
 function drawP(ctx,p){
   const{x,y,w,h}=p;
+
+  // ── NOTA ──────────────────────────────────────────────────
+  if(p.type==='N'){
+    const pad=8, lh=16;
+    // Calcular líneas de texto con wrap
+    ctx.font='12px Rajdhani,sans-serif';
+    const words=p.text.split(' ');
+    let lines=[],cur='';
+    words.forEach(word=>{
+      const test=cur?cur+' '+word:word;
+      if(ctx.measureText(test).width>p.w-pad*2){lines.push(cur);cur=word;}
+      else cur=test;
+    });
+    if(cur)lines.push(cur);
+    // Ajustar altura según líneas
+    p.h=Math.max(36,lines.length*lh+pad*2);
+
+    ctx.save();
+    // Fondo
+    ctx.fillStyle='rgba(255,230,0,0.10)';
+    ctx.strokeStyle='rgba(255,230,0,0.55)';
+    ctx.lineWidth=1.5;
+    ctx.setLineDash([5,3]);
+    ctx.beginPath();
+    ctx.roundRect(x,y,p.w,p.h,4);
+    ctx.fill();ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Esquina doblada (dog-ear)
+    const fold=11;
+    ctx.fillStyle='rgba(255,230,0,0.28)';
+    ctx.strokeStyle='rgba(255,230,0,0.4)';
+    ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(x+p.w-fold,y);
+    ctx.lineTo(x+p.w,y+fold);
+    ctx.lineTo(x+p.w-fold,y+fold);
+    ctx.closePath();
+    ctx.fill();ctx.stroke();
+
+    // Texto
+    ctx.fillStyle='#ffe600';
+    ctx.font='12px Rajdhani,sans-serif';
+    ctx.textAlign='left';
+    lines.forEach((ln,i)=>{
+      ctx.fillText(ln,x+pad,y+pad+lh*(i+0.85));
+    });
+
+    // Indicador de edición (pequeño lápiz)
+    ctx.fillStyle='rgba(255,230,0,0.35)';
+    ctx.font='9px Rajdhani,sans-serif';
+    ctx.textAlign='right';
+    ctx.fillText('2x editar',x+p.w-3,y+p.h+10);
+
+    ctx.restore();
+    return;
+  }
+
   if(p.type==='I'){
     const c=p.val?'#00ffaa':'#ff2d6b';
     ctx.strokeStyle=c;ctx.fillStyle=c+'18';ctx.lineWidth=2;ctx.shadowColor=c;ctx.shadowBlur=p.val?14:3;
@@ -715,6 +790,7 @@ function openFinal(){
   document.getElementById('finalSection').scrollIntoView({behavior:'smooth'});
 }
 
+// ── TOOLBAR FINAL (con NOTA) ──────────────────────────────────
 function buildFinalToolbar(){
   const tb = document.getElementById('finalToolbar');
   const tools = [
@@ -723,6 +799,8 @@ function buildFinalToolbar(){
     {id:'GATE', label:'GATE', cursor:'cell', icon:`<svg viewBox="0 0 16 16" fill="none"><path d="M3 3L3 13L8 13Q14 13 14 8Q14 3 8 3Z" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity="0.15"/></svg>`},
     {id:'OUTPUT', label:'OUTPUT', cursor:'cell', icon:`<svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><text x="8" y="11" text-anchor="middle" fill="currentColor" font-size="4.5" font-weight="bold">OUT</text></svg>`},
     {id:'WIRE', label:'CABLE', cursor:'crosshair', icon:`<svg viewBox="0 0 16 16" fill="none"><line x1="1" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="2"/><circle cx="1" cy="8" r="2" fill="currentColor"/><circle cx="15" cy="8" r="2" fill="currentColor"/></svg>`},
+    // ── NUEVA HERRAMIENTA: NOTA (nivel final) ──
+    {id:'NOTE', label:'NOTA', cursor:'text', icon:`<svg viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><line x1="4" y1="6" x2="12" y2="6" stroke="currentColor" stroke-width="1.2"/><line x1="4" y1="9" x2="9" y2="9" stroke="currentColor" stroke-width="1.2"/></svg>`},
     {id:'DEL', label:'BORRAR', cursor:'not-allowed', icon:`<svg viewBox="0 0 16 16" fill="none"><line x1="3" y1="3" x2="13" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="13" y1="3" x2="3" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`},
   ];
   const gateSelect = `<select id="finalGateSelect" style="padding:5px 8px;background:var(--panel);border:1px solid var(--dim);color:var(--neon);font-family:'Share Tech Mono',monospace;font-size:0.65rem;cursor:pointer">
@@ -742,13 +820,13 @@ function selFinalTool(tool, cursor){
 }
 
 function fOPort(id){
-  const p=FCS.pieces.find(x=>x.id===id); if(!p||p.type==='O')return null;
+  const p=FCS.pieces.find(x=>x.id===id); if(!p||p.type==='O'||p.type==='N')return null;
   const bubble=['NAND','NOR','NOT','XNOR'];
   const hb=p.type==='G'&&bubble.includes(p.gt);
   return{x:p.x+p.w+(hb?10:0),y:p.y+p.h/2};
 }
 function fIPorts(p){
-  if(p.type==='I')return[];
+  if(p.type==='I'||p.type==='N')return[];
   if(p.type==='O')return[{x:p.x,y:p.y+p.h/2}];
   const g=GATES.find(x=>x.id===p.gt); if(!g)return[];
   if(g.inputs===1)return[{x:p.x,y:p.y+p.h/2}];
@@ -769,7 +847,7 @@ function simFinal(){
   FCS.pieces.forEach(p=>{p.out=p.type==='I'?p.val:0;});
   for(let pass=0;pass<15;pass++){
     FCS.pieces.forEach(p=>{
-      if(p.type==='I')return;
+      if(p.type==='I'||p.type==='N')return;
       const ips=fIPorts(p);
       const iv=ips.map((_,i)=>{const w=FCS.wires.find(w=>w.tid===p.id&&w.tp===i);if(!w)return 0;const src=FCS.pieces.find(x=>x.id===w.fid);return src?src.out:0;});
       if(p.type==='O'){p.out=iv[0]||0;}
@@ -874,7 +952,7 @@ function analyzeFinal(){
   const visited=new Set();
   function topoSort(pid){
     if(visited.has(pid))return; visited.add(pid);
-    const p=FCS.pieces.find(x=>x.id===pid); if(!p||p.type==='I')return;
+    const p=FCS.pieces.find(x=>x.id===pid); if(!p||p.type==='I'||p.type==='N')return;
     fIPorts(p).forEach((_,i)=>{const w=FCS.wires.find(w=>w.tid===pid&&w.tp===i);if(w)topoSort(w.fid);});
     if(p.type==='G')ordered.push(p);
   }
@@ -952,7 +1030,6 @@ function initFinalCanvas(){
   const cv = document.getElementById('finalCanvas');
   if(!cv) return;
 
-  // ── FIX PRINCIPAL: medir el ancho real y asignar altura grande ──
   const doInit = () => {
     resizeCanvas(cv);
     cv.height = 600;
@@ -987,10 +1064,10 @@ function initFinalCanvas(){
     (function loop(){ requestAnimationFrame(loop); drawFinal(); })();
   };
 
-  // Esperar un frame para que el DOM esté visible y tenga dimensiones reales
   requestAnimationFrame(() => setTimeout(doInit, 30));
 }
 
+// ── fOnDown — incluye lógica NOTE ─────────────────────────────
 function fOnDown(mx,my){
   const t=FCS.tool;
   if(t==='DEL'){
@@ -1012,7 +1089,14 @@ function fOnDown(mx,my){
     }return;
   }
   if(t==='MOVE'){const p=fPAt(mx,my);if(p){FCS.drag=p;FCS.dox=mx-p.x;FCS.doy=my-p.y;document.getElementById('finalCanvas').style.cursor='grabbing';}return;}
-
+  // ── NOTA nivel final ──
+  if(t==='NOTE'){
+    const txt=prompt('Escribe el texto de la nota:','');
+    if(txt&&txt.trim()){
+      FCS.pieces.push({id:PID++,type:'N',x:mx-60,y:my-18,w:140,h:36,text:txt.trim()});
+    }
+    return;
+  }
   const sel=document.getElementById('finalGateSelect');
   const gid=sel?sel.value:'AND';
   const g=GATES.find(x=>x.id===gid);
@@ -1028,7 +1112,16 @@ function fOnMove(mx,my){
   if(FCS.tool==='MOVE'&&!FCS.drag){const cv=document.getElementById('finalCanvas');if(cv)cv.style.cursor=fPAt(mx,my)?'grab':'default';}
 }
 function fOnUp(){if(FCS.drag){FCS.drag=null;const cv=document.getElementById('finalCanvas');if(cv&&FCS.tool==='MOVE')cv.style.cursor='default';}}
-function fOnDbl(mx,my){const p=fPAt(mx,my);if(p&&p.type==='I'){p.val^=1;p.out=p.val;simFinal();}}
+
+// ── fOnDbl: doble clic en NOTA permite editarla (nivel final) ─
+function fOnDbl(mx,my){
+  const p=fPAt(mx,my);
+  if(p&&p.type==='I'){p.val^=1;p.out=p.val;simFinal();}
+  if(p&&p.type==='N'){
+    const nuevo=prompt('Editar nota:',p.text);
+    if(nuevo!==null&&nuevo.trim()) p.text=nuevo.trim();
+  }
+}
 
 function drawFinal(){
   const cv=document.getElementById('finalCanvas');if(!cv)return;
@@ -1037,7 +1130,6 @@ function drawFinal(){
   FCS.af=(FCS.af||0)+1;
   ctx.clearRect(0,0,W,H);
 
-  // Grid dorada para el nivel final
   ctx.strokeStyle='rgba(255,230,0,0.04)';ctx.lineWidth=1;
   for(let x=0;x<W;x+=28){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
   for(let y=0;y<H;y+=28){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
@@ -1062,8 +1154,61 @@ function drawFinal(){
   FCS.pieces.forEach(p=>drawFinalPiece(ctx,p));
 }
 
+// ── drawFinalPiece — incluye tipo 'N' (NOTA) ─────────────────
 function drawFinalPiece(ctx,p){
   const{x,y,w,h}=p;
+
+  // ── NOTA ──────────────────────────────────────────────────
+  if(p.type==='N'){
+    const pad=8, lh=16;
+    ctx.font='12px Rajdhani,sans-serif';
+    const words=p.text.split(' ');
+    let lines=[],cur='';
+    words.forEach(word=>{
+      const test=cur?cur+' '+word:word;
+      if(ctx.measureText(test).width>p.w-pad*2){lines.push(cur);cur=word;}
+      else cur=test;
+    });
+    if(cur)lines.push(cur);
+    p.h=Math.max(36,lines.length*lh+pad*2);
+
+    ctx.save();
+    ctx.fillStyle='rgba(255,230,0,0.10)';
+    ctx.strokeStyle='rgba(255,230,0,0.55)';
+    ctx.lineWidth=1.5;
+    ctx.setLineDash([5,3]);
+    ctx.beginPath();
+    ctx.roundRect(x,y,p.w,p.h,4);
+    ctx.fill();ctx.stroke();
+    ctx.setLineDash([]);
+
+    const fold=11;
+    ctx.fillStyle='rgba(255,230,0,0.28)';
+    ctx.strokeStyle='rgba(255,230,0,0.4)';
+    ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(x+p.w-fold,y);
+    ctx.lineTo(x+p.w,y+fold);
+    ctx.lineTo(x+p.w-fold,y+fold);
+    ctx.closePath();
+    ctx.fill();ctx.stroke();
+
+    ctx.fillStyle='#ffe600';
+    ctx.font='12px Rajdhani,sans-serif';
+    ctx.textAlign='left';
+    lines.forEach((ln,i)=>{
+      ctx.fillText(ln,x+pad,y+pad+lh*(i+0.85));
+    });
+
+    ctx.fillStyle='rgba(255,230,0,0.35)';
+    ctx.font='9px Rajdhani,sans-serif';
+    ctx.textAlign='right';
+    ctx.fillText('2x editar',x+p.w-3,y+p.h+10);
+
+    ctx.restore();
+    return;
+  }
+
   if(p.type==='I'){
     const c=p.val?'#00ffaa':'#ff2d6b';
     ctx.strokeStyle=c;ctx.fillStyle=c+'18';ctx.lineWidth=2;ctx.shadowColor=c;ctx.shadowBlur=p.val?14:3;
