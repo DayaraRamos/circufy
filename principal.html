@@ -25,17 +25,19 @@
 
 <body>
 
-    <!-- Fondo animado -->
+    <!-- 🔥 VIDEO DE FONDO -->
+    <div class="background">
+        <video autoplay muted loop playsinline>
+            <source src="Estilos/fondoprincipal.mp4" type="video/mp4">
+        </video>
+        <div class="overlay"></div>
+    </div>
 
     <!-- Notificaciones -->
     <div id="toast"></div>
 
-    <!-- Contenido principal -->
+    <!-- CONTENIDO PRINCIPAL -->
     <main class="main-container">
-        <video autoplay muted loop playsinline>
-            <source src="Estilos/fondoprincipal.mp4" type="video/mp4">
-        </video>
-
 
         <section class="main-card">
 
@@ -47,18 +49,20 @@
             </p>
 
             <div class="main-buttons">
-                <a href="index.html" class="btn neon-blue" aria-label="Ir a compuertas lógicas">
+
+                <a href="index.html" class="btn neon-blue">
                     Compuertas Lógicas
                 </a>
 
-                <a href="turing.html" class="btn neon-purple" aria-label="Ir a máquina de Turing">
+                <a href="turing.html" class="btn neon-purple">
                     Máquina de Turing
                 </a>
+
             </div>
 
         </section>
+
     </main>
 
 </body>
-
 </html>
