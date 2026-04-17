@@ -19,7 +19,7 @@ window.addEventListener('resize',()=>{bgc.width=window.innerWidth;bgc.height=win
 // ── STATE ────────────────────────────────────────────────────
 let states = [];       // {id, name, x, y, isInitial, isFinal}
 let transitions = [];  // {from, read, write, move, to}
-let stateId = 0;
+let nextStateId = 0;
 
 // Ejecución
 let tape = [];
@@ -93,12 +93,20 @@ function dcDown(x, y) {
   if (dtool === 'state') {
     const hit = stateAt(x, y);
     if (!hit) {
-      const name = 'q' + stateId++;
-      states.push({ id: name, name, x, y, isInitial: states.length === 0, isFinal: false });
+      const name = 'q' + nextStateId;           // ← Cambiado
+      states.push({ 
+        id: name, 
+        name: name, 
+        x: x, 
+        y: y, 
+        isInitial: states.length === 0, 
+        isFinal: false 
+      });
+      nextStateId++;                            // ← Incrementamos aquí
       document.getElementById('diagramHint').classList.add('hidden');
       updateStateSelects();
       renderDiagram();
-      showToast('Estado ' + name + ' creado','info');
+      showToast('Estado ' + name + ' creado', 'info');
     }
   } else if (dtool === 'trans') {
     const hit = stateAt(x, y);
@@ -663,7 +671,7 @@ function loadPreset(name) {
   resetExec();
   states = [];
   transitions = [];
-  stateId = 0;
+  nextStateId = 0;
   activeTransIdx = -1;
 
   if (name === 'equal01') {
