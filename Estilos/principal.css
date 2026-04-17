@@ -25,3 +25,81 @@ html, body { width: 100%; min-height: 100%; background: var(--bg); color: var(--
 
 /* ── PAGE ── */
 .page { position: relative; z-index: 1; padding: 20px; max-width: 1400px; margin: 0 auto; }
+
+/* ── CONTENEDOR CENTRAL ── */
+.main-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 80vh;
+}
+
+/* ── TARJETA PRINCIPAL ── */
+.main-card {
+  background: linear-gradient(145deg, var(--panel), var(--panel2));
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 40px;
+  width: 420px;
+  text-align: center;
+  box-shadow: 0 0 30px rgba(0,220,255,0.15);
+  backdrop-filter: blur(10px);
+}
+
+/* ── TÍTULO ── */
+.main-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 32px;
+  color: var(--neon);
+  margin-bottom: 20px;
+  text-shadow: 0 0 10px var(--neon);
+}
+
+/* ── DESCRIPCIÓN ── */
+.main-description {
+  font-size: 14px;
+  color: var(--text);
+  margin-bottom: 30px;
+  line-height: 1.5;
+}
+
+/* ── BOTONES ── */
+.main-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* ── BOTÓN BASE ── */
+.btn {
+  padding: 12px;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: 0.3s;
+  border: 1px solid transparent;
+}
+
+/* ── BOTÓN AZUL ── */
+.neon-blue {
+  color: var(--neon);
+  border-color: var(--neon);
+}
+
+.neon-blue:hover {
+  background: var(--neon);
+  color: #000;
+  box-shadow: 0 0 15px var(--neon);
+}
+
+/* ── BOTÓN MORADO ── */
+.neon-purple {
+  color: var(--purple);
+  border-color: var(--purple);
+}
+
+.neon-purple:hover {
+  background: var(--purple);
+  color: #000;
+  box-shadow: 0 0 15px var(--purple);
+}
