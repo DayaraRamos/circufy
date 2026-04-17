@@ -31,7 +31,7 @@ html, body { width: 100%; min-height: 100%; background: var(--bg); color: var(--
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 80vh;
+  min-height: 100vh;
 }
 
 /* ── TARJETA PRINCIPAL ── */
@@ -44,6 +44,24 @@ html, body { width: 100%; min-height: 100%; background: var(--bg); color: var(--
   text-align: center;
   box-shadow: 0 0 30px rgba(0,220,255,0.15);
   backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+  animation: fadeIn 0.8s ease;
+}
+
+.main-card::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(120deg, transparent, var(--neon), transparent);
+  opacity: 0.1;
+  filter: blur(10px);
+  z-index: 0;
+}
+
+.main-card * {
+  position: relative;
+  z-index: 1;
 }
 
 /* ── TÍTULO ── */
@@ -76,8 +94,12 @@ html, body { width: 100%; min-height: 100%; background: var(--bg); color: var(--
   border-radius: 10px;
   text-decoration: none;
   font-weight: 600;
-  transition: 0.3s;
+  transition: all 0.25s ease;
   border: 1px solid transparent;
+}
+
+.btn:active {
+  transform: scale(0.97);
 }
 
 /* ── BOTÓN AZUL ── */

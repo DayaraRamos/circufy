@@ -1,41 +1,59 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO -->
+    <meta name="description"
+        content="Circufy: plataforma interactiva para aprender lógica computacional, circuitos digitales y máquina de Turing.">
+
+    <!-- Icono -->
     <link rel="icon" type="image/x-icon" href="Estilos/logoLink.png">
+
     <title>Circufy — Principal</title>
+
+    <!-- Fuentes -->
     <link
         href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap"
         rel="stylesheet">
+
+    <!-- CSS -->
     <link rel="stylesheet" href="Estilos/principal.css">
 </head>
 
 <body>
+
+    <!-- Fondo animado -->
     <canvas id="bgc"></canvas>
+
+    <!-- Notificaciones -->
     <div id="toast"></div>
 
-    <div class="main-container">
+    <!-- Contenido principal -->
+    <main class="main-container">
+        <section class="main-card">
 
-    <div class="main-card">
+            <h1 class="main-title">CIRCUFY</h1>
 
-        <h1 class="main-title">CIRCUFY</h1>
+            <p class="main-description">
+                Plataforma interactiva para el aprendizaje de la lógica computacional y la matemática discreta.
+                Diseña circuitos digitales, analiza expresiones lógicas y simula algoritmos con máquina de Turing.
+            </p>
 
-        <p class="main-description">
-            Plataforma interactiva para el aprendizaje de la lógica computacional y la matemática discreta.
-            Diseña circuitos digitales, analiza expresiones lógicas y simula algoritmos con máquina de Turing.
-        </p>
+            <div class="main-buttons">
+                <a href="index.html" class="btn neon-blue" aria-label="Ir a compuertas lógicas">
+                    Compuertas Lógicas
+                </a>
 
-        <div class="main-buttons">
-            <a href="index.html" class="btn neon-blue">Compuertas Lógicas</a>
-            <a href="turing.html" class="btn neon-purple">Máquina de Turing</a>
-        </div>
+                <a href="turing.html" class="btn neon-purple" aria-label="Ir a máquina de Turing">
+                    Máquina de Turing
+                </a>
+            </div>
 
-    </div>
-
-</div>
-
+        </section>
+    </main>
 
 </body>
 
