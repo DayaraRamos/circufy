@@ -1,0 +1,27 @@
+/* ============================================================
+   Circufy — principal
+   Archivo: principal.css
+   ============================================================ */
+
+:root {
+  --bg: #03080f;
+  --panel: #070f1a;
+  --panel2: #0a1628;
+  --border: rgba(0,220,255,0.14);
+  --neon: #00dcff;
+  --red: #ff2d6b;
+  --green: #00ffaa;
+  --gold: #ffe600;
+  --purple: #a855f7;
+  --text: #c0e0ff;
+  --dim: #1a3550;
+  --dim2: #2a5070;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; min-height: 100%; background: var(--bg); color: var(--text); font-family: 'Rajdhani', sans-serif; overflow-x: hidden; }
+
+#bgc { position: fixed; inset: 0; z-index: 0; opacity: 0.15; pointer-events: none; }
+
+/* ── PAGE ── */
+.page { position: relative; z-index: 1; padding: 20px; max-width: 1400px; margin: 0 auto; }
