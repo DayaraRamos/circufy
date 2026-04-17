@@ -700,59 +700,51 @@ function loadPreset(name) {
     showToast('Cargado: 0ⁿ1ⁿ — prueba con "0011"', 'ok');
 
   } else if (name === 'palindrome') {
-    // Palíndromo sobre {0,1}
+    // Palíndromo sobre {0,1} - Versión 3.0 (Más estable con cadenas largas)
     states = [
-      { id: 'q0', name: 'q0', x: 120, y: 180, isInitial: true, isFinal: false },   // Estado inicial
-      { id: 'q1', name: 'q1', x: 280, y: 100, isInitial: false, isFinal: false },  // Leyendo hacia la derecha
-      { id: 'q2', name: 'q2', x: 440, y: 100, isInitial: false, isFinal: false },  // Volviendo hacia la izquierda
-      { id: 'q3', name: 'q3', x: 280, y: 260, isInitial: false, isFinal: false },  // Comparando desde el final
-      { id: 'q4', name: 'q4', x: 440, y: 260, isInitial: false, isFinal: false },  // Volviendo al centro
-      { id: 'q5', name: 'q5', x: 600, y: 180, isInitial: false, isFinal: false },  // Verificando centro
-      { id: 'qf', name: 'qf', x: 600, y: 80, isInitial: false, isFinal: true }   // Estado final (aceptación)
+      { id: 'q0', name: 'q0', x: 100, y: 180, isInitial: true, isFinal: false },   // Inicial
+      { id: 'q1', name: 'q1', x: 260, y: 90, isInitial: false, isFinal: false },  // Avanzar derecha
+      { id: 'q2', name: 'q2', x: 420, y: 90, isInitial: false, isFinal: false },  // Comparar desde el final
+      { id: 'q3', name: 'q3', x: 260, y: 270, isInitial: false, isFinal: false },  // Regresar izquierda
+      { id: 'q4', name: 'q4', x: 580, y: 180, isInitial: false, isFinal: false },  // Centro / Verificación
+      { id: 'qf', name: 'qf', x: 580, y: 70, isInitial: false, isFinal: true }   // Aceptado
     ];
 
-    nextStateId = 7;
+    nextStateId = 6;
 
     transitions = [
-      // Desde q0: leer primer símbolo y marcarlo
+      // q0: Leer primer símbolo y marcarlo
       { from: 'q0', read: '0', write: 'X', move: 'R', to: 'q1' },
       { from: 'q0', read: '1', write: 'Y', move: 'R', to: 'q1' },
-      { from: 'q0', read: 'X', write: 'X', move: 'R', to: 'q5' },   // Ya está marcado → ir al centro
-      { from: 'q0', read: 'Y', write: 'Y', move: 'R', to: 'q5' },
-      { from: 'q0', read: 'B', write: 'B', move: 'R', to: 'qf' },   // Cadena vacía o de longitud 1 → aceptada
+      { from: 'q0', read: 'B', write: 'B', move: 'R', to: 'qf' },     // Cadena vacía o longitud 1
 
-      // q1: avanzar hacia la derecha hasta el final
+      // q1: Avanzar hasta el final de la cadena
       { from: 'q1', read: '0', write: '0', move: 'R', to: 'q1' },
       { from: 'q1', read: '1', write: '1', move: 'R', to: 'q1' },
       { from: 'q1', read: 'X', write: 'X', move: 'R', to: 'q1' },
       { from: 'q1', read: 'Y', write: 'Y', move: 'R', to: 'q1' },
-      { from: 'q1', read: 'B', write: 'B', move: 'L', to: 'q2' },   // Llegó al final → empezar a comparar
+      { from: 'q1', read: 'B', write: 'B', move: 'L', to: 'q2' },     // Llegó al final
 
-      // q2: comparar el último símbolo con el marcado
+      // q2: Comparar el símbolo del final con el marcado
       { from: 'q2', read: '0', write: 'X', move: 'L', to: 'q3' },
       { from: 'q2', read: '1', write: 'Y', move: 'L', to: 'q3' },
-      { from: 'q2', read: 'X', write: 'X', move: 'L', to: 'q4' },   // Ya comparado
+      { from: 'q2', read: 'X', write: 'X', move: 'L', to: 'q4' },     // Símbolo ya comparado
       { from: 'q2', read: 'Y', write: 'Y', move: 'L', to: 'q4' },
 
-      // q3: regresar hacia la izquierda buscando el siguiente símbolo marcado
+      // q3: Regresar hacia la izquierda buscando el siguiente símbolo sin marcar
       { from: 'q3', read: '0', write: '0', move: 'L', to: 'q3' },
       { from: 'q3', read: '1', write: '1', move: 'L', to: 'q3' },
-      { from: 'q3', read: 'X', write: 'X', move: 'R', to: 'q0' },   // Encontró el siguiente → volver a q0
+      { from: 'q3', read: 'X', write: 'X', move: 'R', to: 'q0' },     // Encontró siguiente → volver a inicio
       { from: 'q3', read: 'Y', write: 'Y', move: 'R', to: 'q0' },
 
-      // q4: regresar al centro después de comparar
-      { from: 'q4', read: '0', write: '0', move: 'L', to: 'q4' },
-      { from: 'q4', read: '1', write: '1', move: 'L', to: 'q4' },
-      { from: 'q4', read: 'X', write: 'X', move: 'R', to: 'q5' },
-      { from: 'q4', read: 'Y', write: 'Y', move: 'R', to: 'q5' },
-
-      // q5: verificar si estamos en el centro (para aceptar)
-      { from: 'q5', read: 'X', write: 'X', move: 'R', to: 'q5' },
-      { from: 'q5', read: 'Y', write: 'Y', move: 'R', to: 'q5' },
-      { from: 'q5', read: 'B', write: 'B', move: 'R', to: 'qf' },   // Centro limpio → ACEPTADA
+      // q4: Verificación en el centro (casos impares)
+      { from: 'q4', read: 'X', write: 'X', move: 'R', to: 'q4' },
+      { from: 'q4', read: 'Y', write: 'Y', move: 'R', to: 'q4' },
+      { from: 'q4', read: 'B', write: 'B', move: 'R', to: 'qf' },     // Centro limpio → ACEPTADA
     ];
+
     document.getElementById('inputString').value = '0110';
-    showToast('✅ Preset Palíndromo cargado (versión corregida)', 'ok');
+    showToast('✅ Preset Palíndromo v3.0 cargado (mejorado para cadenas largas)', 'ok');
   } else if (name === 'unary') {
     // Suma unaria: 1^a 0 1^b → 1^(a+b)
     states = [
