@@ -7,14 +7,14 @@
 const bgc = document.getElementById('bgc');
 const bgx = bgc.getContext('2d');
 bgc.width = window.innerWidth; bgc.height = window.innerHeight;
-const bpts = Array.from({length:40},()=>({x:Math.random()*bgc.width,y:Math.random()*bgc.height,vx:(Math.random()-.5)*.2,vy:(Math.random()-.5)*.2,r:Math.random()*.7+.3}));
-(function bl(){
-  bgx.clearRect(0,0,bgc.width,bgc.height);
-  bpts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>bgc.width)p.vx*=-1;if(p.y<0||p.y>bgc.height)p.vy*=-1;bgx.beginPath();bgx.arc(p.x,p.y,p.r,0,Math.PI*2);bgx.fillStyle='rgba(168,85,247,0.25)';bgx.fill();});
-  for(let i=0;i<bpts.length;i++)for(let j=i+1;j<bpts.length;j++){const d=Math.hypot(bpts[i].x-bpts[j].x,bpts[i].y-bpts[j].y);if(d<90){bgx.strokeStyle=`rgba(168,85,247,${(1-d/90)*.04})`;bgx.lineWidth=.5;bgx.beginPath();bgx.moveTo(bpts[i].x,bpts[i].y);bgx.lineTo(bpts[j].x,bpts[j].y);bgx.stroke();}}
+const bpts = Array.from({ length: 40 }, () => ({ x: Math.random() * bgc.width, y: Math.random() * bgc.height, vx: (Math.random() - .5) * .2, vy: (Math.random() - .5) * .2, r: Math.random() * .7 + .3 }));
+(function bl() {
+  bgx.clearRect(0, 0, bgc.width, bgc.height);
+  bpts.forEach(p => { p.x += p.vx; p.y += p.vy; if (p.x < 0 || p.x > bgc.width) p.vx *= -1; if (p.y < 0 || p.y > bgc.height) p.vy *= -1; bgx.beginPath(); bgx.arc(p.x, p.y, p.r, 0, Math.PI * 2); bgx.fillStyle = 'rgba(168,85,247,0.25)'; bgx.fill(); });
+  for (let i = 0; i < bpts.length; i++)for (let j = i + 1; j < bpts.length; j++) { const d = Math.hypot(bpts[i].x - bpts[j].x, bpts[i].y - bpts[j].y); if (d < 90) { bgx.strokeStyle = `rgba(168,85,247,${(1 - d / 90) * .04})`; bgx.lineWidth = .5; bgx.beginPath(); bgx.moveTo(bpts[i].x, bpts[i].y); bgx.lineTo(bpts[j].x, bpts[j].y); bgx.stroke(); } }
   requestAnimationFrame(bl);
 })();
-window.addEventListener('resize',()=>{bgc.width=window.innerWidth;bgc.height=window.innerHeight;});
+window.addEventListener('resize', () => { bgc.width = window.innerWidth; bgc.height = window.innerHeight; });
 
 // ── STATE ────────────────────────────────────────────────────
 let states = [];       // {id, name, x, y, isInitial, isFinal}
@@ -65,9 +65,9 @@ dc.addEventListener('dblclick', e => {
   const p = dcPos(e);
   dcDbl(p.x, p.y);
 });
-dc.addEventListener('touchstart', e => { e.preventDefault(); const p = dcTPos(e); dcDown(p.x,p.y); }, {passive:false});
-dc.addEventListener('touchmove', e => { e.preventDefault(); const p = dcTPos(e); dcMove(p.x,p.y); }, {passive:false});
-dc.addEventListener('touchend', e => { e.preventDefault(); dcUp(); }, {passive:false});
+dc.addEventListener('touchstart', e => { e.preventDefault(); const p = dcTPos(e); dcDown(p.x, p.y); }, { passive: false });
+dc.addEventListener('touchmove', e => { e.preventDefault(); const p = dcTPos(e); dcMove(p.x, p.y); }, { passive: false });
+dc.addEventListener('touchend', e => { e.preventDefault(); dcUp(); }, { passive: false });
 
 function dcPos(e) {
   const r = dc.getBoundingClientRect();
@@ -94,13 +94,13 @@ function dcDown(x, y) {
     const hit = stateAt(x, y);
     if (!hit) {
       const name = 'q' + nextStateId;           // ← Cambiado
-      states.push({ 
-        id: name, 
-        name: name, 
-        x: x, 
-        y: y, 
-        isInitial: states.length === 0, 
-        isFinal: false 
+      states.push({
+        id: name,
+        name: name,
+        x: x,
+        y: y,
+        isInitial: states.length === 0,
+        isFinal: false
       });
       nextStateId++;                            // ← Incrementamos aquí
       document.getElementById('diagramHint').classList.add('hidden');
@@ -114,14 +114,14 @@ function dcDown(x, y) {
       if (!transFrom) {
         transFrom = hit;
         renderDiagram();
-        showToast('Selecciona el estado destino','info');
+        showToast('Selecciona el estado destino', 'info');
       } else {
         // Asignar la transición automáticamente usando el formulario
         document.getElementById('fFrom').value = transFrom.id;
         document.getElementById('fTo').value = hit.id;
         transFrom = null;
         renderDiagram();
-        showToast('Estados seleccionados — define la transición en el panel derecho','info');
+        showToast('Estados seleccionados — define la transición en el panel derecho', 'info');
       }
     }
   } else if (dtool === 'move') {
@@ -136,7 +136,7 @@ function dcDown(x, y) {
       renderTransList();
       renderDeltaTable();
       renderDiagram();
-      showToast('Estado ' + hit.id + ' eliminado','bad');
+      showToast('Estado ' + hit.id + ' eliminado', 'bad');
     } else {
       // Eliminar transición cercana (aproximado por clic)
       const idx = findTransitionNear(x, y);
@@ -145,7 +145,7 @@ function dcDown(x, y) {
         renderTransList();
         renderDeltaTable();
         renderDiagram();
-        showToast('Transición eliminada','bad');
+        showToast('Transición eliminada', 'bad');
       }
     }
   }
@@ -174,14 +174,14 @@ function dcDbl(x, y) {
     // Marcar como inicial
     states.forEach(s => s.isInitial = false);
     hit.isInitial = true;
-    showToast(hit.id + ' marcado como INICIAL','ok');
+    showToast(hit.id + ' marcado como INICIAL', 'ok');
   } else if (hit.isInitial && !hit.isFinal) {
     hit.isFinal = true;
-    showToast(hit.id + ' marcado como FINAL','ok');
+    showToast(hit.id + ' marcado como FINAL', 'ok');
   } else if (hit.isFinal) {
     hit.isInitial = false;
     hit.isFinal = false;
-    showToast(hit.id + ' marcado como normal','info');
+    showToast(hit.id + ' marcado como normal', 'info');
   }
   renderDiagram();
 }
@@ -207,13 +207,13 @@ function renderDiagram() {
 
   // Grid
   dctx.strokeStyle = 'rgba(168,85,247,0.04)'; dctx.lineWidth = 1;
-  for (let x = 0; x < W; x += 32) { dctx.beginPath(); dctx.moveTo(x,0); dctx.lineTo(x,H); dctx.stroke(); }
-  for (let y = 0; y < H; y += 32) { dctx.beginPath(); dctx.moveTo(0,y); dctx.lineTo(W,y); dctx.stroke(); }
+  for (let x = 0; x < W; x += 32) { dctx.beginPath(); dctx.moveTo(x, 0); dctx.lineTo(x, H); dctx.stroke(); }
+  for (let y = 0; y < H; y += 32) { dctx.beginPath(); dctx.moveTo(0, y); dctx.lineTo(W, y); dctx.stroke(); }
 
   // Transiciones
   transitions.forEach((t, idx) => {
     const from = states.find(s => s.id === t.from);
-    const to   = states.find(s => s.id === t.to);
+    const to = states.find(s => s.id === t.to);
     if (!from || !to) return;
     const isActive = (idx === activeTransIdx);
     drawTransitionArrow(dctx, from, to, t, isActive);
@@ -221,7 +221,7 @@ function renderDiagram() {
 
   // Flecha temporal al crear transición
   if (transFrom) {
-    dctx.strokeStyle = 'rgba(255,230,0,0.5)'; dctx.lineWidth = 2; dctx.setLineDash([6,4]);
+    dctx.strokeStyle = 'rgba(255,230,0,0.5)'; dctx.lineWidth = 2; dctx.setLineDash([6, 4]);
     dctx.beginPath(); dctx.arc(transFrom.x, transFrom.y, 26, 0, Math.PI * 2);
     dctx.stroke(); dctx.setLineDash([]);
   }
@@ -262,7 +262,7 @@ function drawTransitionArrow(ctx, from, to, t, isActive) {
   const px = -uy * offset, py = ux * offset;
 
   const sx = from.x + ux * 26, sy = from.y + uy * 26;
-  const ex = to.x - ux * 26,   ey = to.y - uy * 26;
+  const ex = to.x - ux * 26, ey = to.y - uy * 26;
   const cx = (sx + ex) / 2 + px, cy = (sy + ey) / 2 + py;
 
   ctx.beginPath();
@@ -318,14 +318,14 @@ function drawState(ctx, s, isActive) {
 }
 
 // Loop de renderizado del diagrama
-(function dloop(){ requestAnimationFrame(dloop); renderDiagram(); })();
+(function dloop() { requestAnimationFrame(dloop); renderDiagram(); })();
 
 // ── TOOL SELECTION ───────────────────────────────────────────
 function setDTool(tool) {
   dtool = tool; transFrom = null;
   document.querySelectorAll('.dtool-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('dtool-' + tool)?.classList.add('active');
-  const cursors = { state:'crosshair', trans:'pointer', move:'default', del:'not-allowed' };
+  const cursors = { state: 'crosshair', trans: 'pointer', move: 'default', del: 'not-allowed' };
   dc.style.cursor = cursors[tool] || 'default';
 }
 
@@ -335,7 +335,7 @@ function updateStateSelects() {
   selIds.forEach(id => {
     const sel = document.getElementById(id);
     const prev = sel.value;
-    sel.innerHTML = states.map(s => `<option value="${s.id}">${s.id}${s.isFinal?' ✓':''}</option>`).join('');
+    sel.innerHTML = states.map(s => `<option value="${s.id}">${s.id}${s.isFinal ? ' ✓' : ''}</option>`).join('');
     if (states.find(s => s.id === prev)) sel.value = prev;
   });
   document.getElementById('transCount').textContent = transitions.length;
@@ -350,24 +350,24 @@ function setMove(m) {
 
 // ── ADD TRANSITION ───────────────────────────────────────────
 function addTransition() {
-  if (states.length < 1) { showToast('Crea al menos 1 estado primero','bad'); return; }
-  const from  = document.getElementById('fFrom').value;
-  const read  = document.getElementById('fRead').value;
+  if (states.length < 1) { showToast('Crea al menos 1 estado primero', 'bad'); return; }
+  const from = document.getElementById('fFrom').value;
+  const read = document.getElementById('fRead').value;
   const write = document.getElementById('fWrite').value;
-  const move  = selectedMove;
-  const to    = document.getElementById('fTo').value;
+  const move = selectedMove;
+  const to = document.getElementById('fTo').value;
 
-  if (!from || !to) { showToast('Selecciona estados válidos','bad'); return; }
+  if (!from || !to) { showToast('Selecciona estados válidos', 'bad'); return; }
 
   // Verificar si ya existe la misma regla
   const exists = transitions.find(t => t.from === from && t.read === read);
-  if (exists) { showToast('Ya existe una transición desde ' + from + ' leyendo ' + read,'bad'); return; }
+  if (exists) { showToast('Ya existe una transición desde ' + from + ' leyendo ' + read, 'bad'); return; }
 
   transitions.push({ from, read, write, move, to });
   renderTransList();
   renderDeltaTable();
   updateStateSelects();
-  showToast('✓ Transición agregada: ' + from + ' → ' + to,'ok');
+  showToast('✓ Transición agregada: ' + from + ' → ' + to, 'ok');
 }
 
 // ── RENDER TRANSITION LIST ───────────────────────────────────
@@ -401,12 +401,12 @@ function renderDeltaTable() {
     return;
   }
   const symbols = [...new Set(transitions.map(t => t.read))].sort();
-  const header = `<tr><th>δ</th>${symbols.map(s=>`<th>${s}</th>`).join('')}</tr>`;
+  const header = `<tr><th>δ</th>${symbols.map(s => `<th>${s}</th>`).join('')}</tr>`;
   const rows = states.map(s => {
     const cells = symbols.map(sym => {
       const t = transitions.find(tr => tr.from === s.id && tr.read === sym);
       const isAct = t && t.from === curState && sym === (tape[head] || 'B');
-      return `<td class="${t?'defined':''}${isAct?' active-cell':''}">${t?`(${t.write},${t.move},${t.to})`:'—'}</td>`;
+      return `<td class="${t ? 'defined' : ''}${isAct ? ' active-cell' : ''}">${t ? `(${t.write},${t.move},${t.to})` : '—'}</td>`;
     });
     return `<tr><td style="color:var(--neon)">${s.id}</td>${cells.join('')}</tr>`;
   });
@@ -415,13 +415,13 @@ function renderDeltaTable() {
 
 // ── TAPE RENDER ──────────────────────────────────────────────
 function renderTape() {
-  const row  = document.getElementById('tapeRow');
+  const row = document.getElementById('tapeRow');
   const hrow = document.getElementById('tapeHeadRow');
-  if (!tape.length) { row.innerHTML = '<span style="color:var(--dim2);font-size:0.65rem;padding:14px">Sin cinta. Ingresa una cadena y pulsa INICIAR.</span>'; hrow.innerHTML=''; return; }
+  if (!tape.length) { row.innerHTML = '<span style="color:var(--dim2);font-size:0.65rem;padding:14px">Sin cinta. Ingresa una cadena y pulsa INICIAR.</span>'; hrow.innerHTML = ''; return; }
 
   // Mostrar ventana de celdas alrededor del cabezal
   const start = Math.max(0, head - 8);
-  const end   = Math.min(tape.length - 1, head + 8);
+  const end = Math.min(tape.length - 1, head + 8);
 
   let cells = '', heads = '';
   for (let i = start; i <= end; i++) {
@@ -429,7 +429,7 @@ function renderTape() {
     const isH = i === head;
     const cls = isH ? 'tape-cell active' : `tape-cell v${sym === 'B' ? 'blank' : sym}`;
     cells += `<div class="${cls}">${sym === 'B' ? '□' : sym}</div>`;
-    heads += `<div class="tape-head-cell${isH?' active':''}">${isH ? '▲' : ''}</div>`;
+    heads += `<div class="tape-head-cell${isH ? ' active' : ''}">${isH ? '▲' : ''}</div>`;
   }
   row.innerHTML = cells;
   hrow.innerHTML = heads;
@@ -449,18 +449,18 @@ function validateInput(el) {
 function initExecution() {
   const str = document.getElementById('inputString').value.trim();
   if (!str && str !== '0' && str !== '1') {
-    if (str.length === 0) { showToast('Ingresa una cadena','bad'); return; }
+    if (str.length === 0) { showToast('Ingresa una cadena', 'bad'); return; }
   }
-  if (!/^[01]*$/.test(str)) { showToast('Solo se permiten 0 y 1','bad'); return; }
-  if (!states.length) { showToast('Diseña la máquina primero','bad'); return; }
+  if (!/^[01]*$/.test(str)) { showToast('Solo se permiten 0 y 1', 'bad'); return; }
+  if (!states.length) { showToast('Diseña la máquina primero', 'bad'); return; }
   const init = states.find(s => s.isInitial);
-  if (!init) { showToast('Define un estado inicial (doble clic en un estado)','bad'); return; }
-  if (!transitions.length) { showToast('Agrega transiciones primero','bad'); return; }
+  if (!init) { showToast('Define un estado inicial (doble clic en un estado)', 'bad'); return; }
+  if (!transitions.length) { showToast('Agrega transiciones primero', 'bad'); return; }
 
   // Preparar cinta
   tape = str.length ? str.split('') : ['B'];
   // Agregar blancos a izquierda y derecha
-  tape = ['B','B',...tape,'B','B'];
+  tape = ['B', 'B', ...tape, 'B', 'B'];
   head = 2; // apuntar al primer símbolo real
   curState = init.id;
   stepNum = 0;
@@ -477,12 +477,12 @@ function initExecution() {
   renderDeltaTable();
   renderTransList();
   enableExecBtns(true);
-  showToast('▶ Ejecución iniciada — usa PASO o EJECUTAR','info');
+  showToast('▶ Ejecución iniciada — usa PASO o EJECUTAR', 'info');
 }
 
 function enableExecBtns(enabled) {
   document.getElementById('btnStep').disabled = !enabled;
-  document.getElementById('btnRun').disabled  = !enabled;
+  document.getElementById('btnRun').disabled = !enabled;
   document.getElementById('btnStepBack').disabled = true;
 }
 
@@ -492,7 +492,7 @@ function getCurrentTransition() {
 }
 
 function stepForward() {
-  if (execDone) { showToast('La ejecución ya terminó. Presiona ↺ RESET','info'); return; }
+  if (execDone) { showToast('La ejecución ya terminó. Presiona ↺ RESET', 'info'); return; }
   const tidx = getCurrentTransition();
   if (tidx < 0) {
     // Sin transición → RECHAZADA
@@ -500,7 +500,7 @@ function stepForward() {
     if (isFinal) {
       finalize(true);
     } else {
-      log(stepNum, `Sin transición desde ${curState} leyendo "${tape[head]||'B'}" → RECHAZADA`, 'error');
+      log(stepNum, `Sin transición desde ${curState} leyendo "${tape[head] || 'B'}" → RECHAZADA`, 'error');
       finalize(false);
     }
     return;
@@ -563,7 +563,7 @@ function stepBack() {
 }
 
 function runAll() {
-  if (execDone) { showToast('Reinicia primero','info'); return; }
+  if (execDone) { showToast('Reinicia primero', 'info'); return; }
   clearAutoTimer();
   const speed = parseInt(document.getElementById('speedRange').value);
   const delay = Math.max(80, 600 - speed * 55);
@@ -578,7 +578,7 @@ function runAll() {
     }
     stepForward();
     if (!execDone && stepNum < 500) autoTimer = setTimeout(tick, delay);
-    else if (stepNum >= 500) { log('SYS','Límite de 500 pasos alcanzado — posible bucle infinito','error'); finalize(false); }
+    else if (stepNum >= 500) { log('SYS', 'Límite de 500 pasos alcanzado — posible bucle infinito', 'error'); finalize(false); }
   }
   tick();
 }
@@ -592,16 +592,16 @@ function finalize(accepted) {
     banner.className = 'result-banner accepted';
     log('FIN', '✅ CADENA ACEPTADA — estado final: ' + curState, 'ok');
     setNavStatus('accepted', 'ACEPTADA');
-    showToast('✅ Cadena ACEPTADA','ok');
+    showToast('✅ Cadena ACEPTADA', 'ok');
   } else {
     banner.textContent = '❌ CADENA RECHAZADA';
     banner.className = 'result-banner rejected';
     log('FIN', '❌ CADENA RECHAZADA — estado: ' + curState, 'error');
     setNavStatus('rejected', 'RECHAZADA');
-    showToast('❌ Cadena RECHAZADA','bad');
+    showToast('❌ Cadena RECHAZADA', 'bad');
   }
   document.getElementById('btnStep').disabled = true;
-  document.getElementById('btnRun').disabled  = true;
+  document.getElementById('btnRun').disabled = true;
 }
 
 function resetExec() {
@@ -630,7 +630,7 @@ function clearAutoTimer() {
 }
 
 // ── SPEED LABEL ───────────────────────────────────────────────
-document.getElementById('speedRange').addEventListener('input', function() {
+document.getElementById('speedRange').addEventListener('input', function () {
   document.getElementById('speedLabel').textContent = this.value;
 });
 
@@ -646,7 +646,7 @@ function log(step, msg, type = 'info') {
   const wrap = document.getElementById('consoleWrap');
   const div = document.createElement('div');
   div.className = 'console-line ' + type;
-  div.innerHTML = `<span class="cl-step">${String(step).padStart(3,'0')}</span><span class="cl-msg">${msg}</span>`;
+  div.innerHTML = `<span class="cl-step">${String(step).padStart(3, '0')}</span><span class="cl-msg">${msg}</span>`;
   wrap.appendChild(div);
   wrap.scrollTop = wrap.scrollHeight;
 }
@@ -677,85 +677,98 @@ function loadPreset(name) {
   if (name === 'equal01') {
     // L = { 0^n 1^n | n >= 1 }
     states = [
-      { id:'q0', name:'q0', x:80,  y:200, isInitial:true,  isFinal:false },
-      { id:'q1', name:'q1', x:240, y:200, isInitial:false, isFinal:false },
-      { id:'q2', name:'q2', x:400, y:200, isInitial:false, isFinal:false },
-      { id:'q3', name:'q3', x:560, y:200, isInitial:false, isFinal:false },
-      { id:'qf', name:'qf', x:560, y:80,  isInitial:false, isFinal:true  },
+      { id: 'q0', name: 'q0', x: 80, y: 200, isInitial: true, isFinal: false },
+      { id: 'q1', name: 'q1', x: 240, y: 200, isInitial: false, isFinal: false },
+      { id: 'q2', name: 'q2', x: 400, y: 200, isInitial: false, isFinal: false },
+      { id: 'q3', name: 'q3', x: 560, y: 200, isInitial: false, isFinal: false },
+      { id: 'qf', name: 'qf', x: 560, y: 80, isInitial: false, isFinal: true },
     ];
     stateId = 5;
     transitions = [
-      { from:'q0', read:'0', write:'X', move:'R', to:'q1' },
-      { from:'q1', read:'0', write:'0', move:'R', to:'q1' },
-      { from:'q1', read:'Y', write:'Y', move:'R', to:'q1' },
-      { from:'q1', read:'1', write:'Y', move:'L', to:'q2' },
-      { from:'q2', read:'0', write:'0', move:'L', to:'q2' },
-      { from:'q2', read:'Y', write:'Y', move:'L', to:'q2' },
-      { from:'q2', read:'X', write:'X', move:'R', to:'q0' },
-      { from:'q0', read:'Y', write:'Y', move:'R', to:'q3' },
-      { from:'q3', read:'Y', write:'Y', move:'R', to:'q3' },
-      { from:'q3', read:'B', write:'B', move:'R', to:'qf' },
+      { from: 'q0', read: '0', write: 'X', move: 'R', to: 'q1' },
+      { from: 'q1', read: '0', write: '0', move: 'R', to: 'q1' },
+      { from: 'q1', read: 'Y', write: 'Y', move: 'R', to: 'q1' },
+      { from: 'q1', read: '1', write: 'Y', move: 'L', to: 'q2' },
+      { from: 'q2', read: '0', write: '0', move: 'L', to: 'q2' },
+      { from: 'q2', read: 'Y', write: 'Y', move: 'L', to: 'q2' },
+      { from: 'q2', read: 'X', write: 'X', move: 'R', to: 'q0' },
+      { from: 'q0', read: 'Y', write: 'Y', move: 'R', to: 'q3' },
+      { from: 'q3', read: 'Y', write: 'Y', move: 'R', to: 'q3' },
+      { from: 'q3', read: 'B', write: 'B', move: 'R', to: 'qf' },
     ];
     document.getElementById('inputString').value = '0011';
-    showToast('Cargado: 0ⁿ1ⁿ — prueba con "0011"','ok');
+    showToast('Cargado: 0ⁿ1ⁿ — prueba con "0011"', 'ok');
 
   } else if (name === 'palindrome') {
     // Palíndromo sobre {0,1}
     states = [
-      { id:'q0', name:'q0', x:80,  y:200, isInitial:true,  isFinal:false },
-      { id:'q1', name:'q1', x:240, y:120, isInitial:false, isFinal:false },
-      { id:'q2', name:'q2', x:400, y:120, isInitial:false, isFinal:false },
-      { id:'q3', name:'q3', x:240, y:280, isInitial:false, isFinal:false },
-      { id:'q4', name:'q4', x:400, y:280, isInitial:false, isFinal:false },
-      { id:'q5', name:'q5', x:560, y:200, isInitial:false, isFinal:false },
-      { id:'qf', name:'qf', x:560, y:80,  isInitial:false, isFinal:true  },
+      { id: 'q0', name: 'q0', x: 120, y: 180, isInitial: true, isFinal: false },   // Estado inicial
+      { id: 'q1', name: 'q1', x: 280, y: 100, isInitial: false, isFinal: false },  // Leyendo hacia la derecha
+      { id: 'q2', name: 'q2', x: 440, y: 100, isInitial: false, isFinal: false },  // Volviendo hacia la izquierda
+      { id: 'q3', name: 'q3', x: 280, y: 260, isInitial: false, isFinal: false },  // Comparando desde el final
+      { id: 'q4', name: 'q4', x: 440, y: 260, isInitial: false, isFinal: false },  // Volviendo al centro
+      { id: 'q5', name: 'q5', x: 600, y: 180, isInitial: false, isFinal: false },  // Verificando centro
+      { id: 'qf', name: 'qf', x: 600, y: 80, isInitial: false, isFinal: true }   // Estado final (aceptación)
     ];
-    stateId = 7;
+
+    nextStateId = 7;
+
     transitions = [
-      { from:'q0', read:'0', write:'X', move:'R', to:'q1' },
-      { from:'q0', read:'1', write:'Y', move:'R', to:'q3' },
-      { from:'q0', read:'X', write:'X', move:'R', to:'q5' },
-      { from:'q0', read:'Y', write:'Y', move:'R', to:'q5' },
-      { from:'q0', read:'B', write:'B', move:'R', to:'qf' },
-      { from:'q1', read:'0', write:'0', move:'R', to:'q1' },
-      { from:'q1', read:'1', write:'1', move:'R', to:'q1' },
-      { from:'q1', read:'X', write:'X', move:'R', to:'q1' },
-      { from:'q1', read:'Y', write:'Y', move:'R', to:'q1' },
-      { from:'q1', read:'B', write:'B', move:'L', to:'q2' },
-      { from:'q2', read:'0', write:'X', move:'L', to:'q5' },
-      { from:'q2', read:'X', write:'X', move:'L', to:'q5' },
-      { from:'q3', read:'0', write:'0', move:'R', to:'q3' },
-      { from:'q3', read:'1', write:'1', move:'R', to:'q3' },
-      { from:'q3', read:'X', write:'X', move:'R', to:'q3' },
-      { from:'q3', read:'Y', write:'Y', move:'R', to:'q3' },
-      { from:'q3', read:'B', write:'B', move:'L', to:'q4' },
-      { from:'q4', read:'1', write:'Y', move:'L', to:'q5' },
-      { from:'q4', read:'Y', write:'Y', move:'L', to:'q5' },
-      { from:'q5', read:'0', write:'0', move:'L', to:'q5' },
-      { from:'q5', read:'1', write:'1', move:'L', to:'q5' },
-      { from:'q5', read:'X', write:'X', move:'L', to:'q5' },
-      { from:'q5', read:'Y', write:'Y', move:'L', to:'q5' },
-      { from:'q5', read:'B', write:'B', move:'R', to:'q0' },
+      // Desde q0: leer primer símbolo y marcarlo
+      { from: 'q0', read: '0', write: 'X', move: 'R', to: 'q1' },
+      { from: 'q0', read: '1', write: 'Y', move: 'R', to: 'q1' },
+      { from: 'q0', read: 'X', write: 'X', move: 'R', to: 'q5' },   // Ya está marcado → ir al centro
+      { from: 'q0', read: 'Y', write: 'Y', move: 'R', to: 'q5' },
+      { from: 'q0', read: 'B', write: 'B', move: 'R', to: 'qf' },   // Cadena vacía o de longitud 1 → aceptada
+
+      // q1: avanzar hacia la derecha hasta el final
+      { from: 'q1', read: '0', write: '0', move: 'R', to: 'q1' },
+      { from: 'q1', read: '1', write: '1', move: 'R', to: 'q1' },
+      { from: 'q1', read: 'X', write: 'X', move: 'R', to: 'q1' },
+      { from: 'q1', read: 'Y', write: 'Y', move: 'R', to: 'q1' },
+      { from: 'q1', read: 'B', write: 'B', move: 'L', to: 'q2' },   // Llegó al final → empezar a comparar
+
+      // q2: comparar el último símbolo con el marcado
+      { from: 'q2', read: '0', write: 'X', move: 'L', to: 'q3' },
+      { from: 'q2', read: '1', write: 'Y', move: 'L', to: 'q3' },
+      { from: 'q2', read: 'X', write: 'X', move: 'L', to: 'q4' },   // Ya comparado
+      { from: 'q2', read: 'Y', write: 'Y', move: 'L', to: 'q4' },
+
+      // q3: regresar hacia la izquierda buscando el siguiente símbolo marcado
+      { from: 'q3', read: '0', write: '0', move: 'L', to: 'q3' },
+      { from: 'q3', read: '1', write: '1', move: 'L', to: 'q3' },
+      { from: 'q3', read: 'X', write: 'X', move: 'R', to: 'q0' },   // Encontró el siguiente → volver a q0
+      { from: 'q3', read: 'Y', write: 'Y', move: 'R', to: 'q0' },
+
+      // q4: regresar al centro después de comparar
+      { from: 'q4', read: '0', write: '0', move: 'L', to: 'q4' },
+      { from: 'q4', read: '1', write: '1', move: 'L', to: 'q4' },
+      { from: 'q4', read: 'X', write: 'X', move: 'R', to: 'q5' },
+      { from: 'q4', read: 'Y', write: 'Y', move: 'R', to: 'q5' },
+
+      // q5: verificar si estamos en el centro (para aceptar)
+      { from: 'q5', read: 'X', write: 'X', move: 'R', to: 'q5' },
+      { from: 'q5', read: 'Y', write: 'Y', move: 'R', to: 'q5' },
+      { from: 'q5', read: 'B', write: 'B', move: 'R', to: 'qf' },   // Centro limpio → ACEPTADA
     ];
     document.getElementById('inputString').value = '0110';
-    showToast('Cargado: Palíndromo — prueba con "0110" o "010"','ok');
-
+    showToast('✅ Preset Palíndromo cargado (versión corregida)', 'ok');
   } else if (name === 'unary') {
     // Suma unaria: 1^a 0 1^b → 1^(a+b)
     states = [
-      { id:'q0', name:'q0', x:80,  y:200, isInitial:true,  isFinal:false },
-      { id:'q1', name:'q1', x:280, y:200, isInitial:false, isFinal:false },
-      { id:'qf', name:'qf', x:480, y:200, isInitial:false, isFinal:true  },
+      { id: 'q0', name: 'q0', x: 80, y: 200, isInitial: true, isFinal: false },
+      { id: 'q1', name: 'q1', x: 280, y: 200, isInitial: false, isFinal: false },
+      { id: 'qf', name: 'qf', x: 480, y: 200, isInitial: false, isFinal: true },
     ];
     stateId = 3;
     transitions = [
-      { from:'q0', read:'1', write:'1', move:'R', to:'q0' },
-      { from:'q0', read:'0', write:'1', move:'R', to:'q1' },
-      { from:'q1', read:'1', write:'1', move:'R', to:'q1' },
-      { from:'q1', read:'B', write:'B', move:'L', to:'qf' },
+      { from: 'q0', read: '1', write: '1', move: 'R', to: 'q0' },
+      { from: 'q0', read: '0', write: '1', move: 'R', to: 'q1' },
+      { from: 'q1', read: '1', write: '1', move: 'R', to: 'q1' },
+      { from: 'q1', read: 'B', write: 'B', move: 'L', to: 'qf' },
     ];
     document.getElementById('inputString').value = '1110111';
-    showToast('Cargado: Suma unaria — entrada: "1^a 0 1^b"','ok');
+    showToast('Cargado: Suma unaria — entrada: "1^a 0 1^b"', 'ok');
   }
 
   updateStateSelects();
