@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Circufy — Máquina de Turing</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="turing.css">
+</head>
+<body>
+
+<canvas id="bgc"></canvas>
+<div id="toast"></div>
+
+<!-- ── NAVBAR ── -->
+<nav id="navbar">
+  <div class="nav-logo">
+    <a href="index.html" class="nav-logo-link">
+      <span class="nav-logo-text">CIRCUFY</span>
+      <span class="nav-logo-sub">Matematicas discretas</span>
+    </a>
+  </div>
+  <div class="nav-tabs">
+    <a href="index.html" class="nav-tab">⚡ Compuertas</a>
+    <span class="nav-tab active">🤖 Máquina de Turing</span>
+  </div>
+  <div class="nav-status" id="navStatus">
+    <span class="status-dot idle"></span>
+    <span id="statusText">LISTO</span>
+  </div>
+</nav>
+
+<!-- ── MAIN ── -->
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="tm-header">
+    <div class="tm-header-left">
+      <div class="tm-title">
+        <span class="step-badge">TM</span>
+        MÁQUINA DE TURING
+      </div>
+      <div class="tm-subtitle">Diseña estados · Define transiciones · Ejecuta y valida cadenas binarias</div>
+    </div>
+    <div class="tm-presets">
+      <span class="presets-label">Cargar ejemplo:</span>
+      <button class="preset-btn" onclick="loadPreset('equal01')">0ⁿ1ⁿ</button>
+      <button class="preset-btn" onclick="loadPreset('palindrome')">Palíndromo</button>
+      <button class="preset-btn" onclick="loadPreset('unary')">Suma unaria</button>
+    </div>
+  </div>
+
+  <!-- LAYOUT PRINCIPAL -->
+  <div class="tm-layout">
+
+    <!-- COLUMNA IZQUIERDA: Diagrama -->
+    <div class="tm-col-main">
+
+      <!-- DIAGRAMA DE ESTADOS -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">// DIAGRAMA DE ESTADOS</span>
+          <div class="diagram-tools">
+            <button class="dtool-btn active" id="dtool-state" onclick="setDTool('state')" title="Crear estado">
+              <svg viewBox="0 0 18 18"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+              ESTADO
+            </button>
+            <button class="dtool-btn" id="dtool-trans" onclick="setDTool('trans')" title="Conectar estados">
+              <svg viewBox="0 0 18 18"><line x1="2" y1="9" x2="14" y2="9" stroke="currentColor" stroke-width="1.5"/><polyline points="10,5 14,9 10,13" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+              TRANSICIÓN
+            </button>
+            <button class="dtool-btn" id="dtool-move" onclick="setDTool('move')" title="Mover estados">
+              <svg viewBox="0 0 18 18"><path d="M9 2L9 16M2 9L16 9M9 2L6 5M9 2L12 5M9 16L6 13M9 16L12 13M2 9L5 6M2 9L5 12M16 9L13 6M16 9L13 12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+              MOVER
+            </button>
+            <button class="dtool-btn danger" id="dtool-del" onclick="setDTool('del')" title="Eliminar">
+              <svg viewBox="0 0 18 18"><line x1="4" y1="4" x2="14" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="14" y1="4" x2="4" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              BORRAR
+            </button>
+          </div>
+        </div>
+        <div class="diagram-wrap">
+          <canvas id="diagramCanvas"></canvas>
+          <div class="diagram-hint" id="diagramHint">Haz clic en el canvas para crear el primer estado</div>
+        </div>
+        <div class="diagram-legend">
+          <span class="legend-item"><span class="leg-dot initial"></span>Inicial</span>
+          <span class="legend-item"><span class="leg-dot final"></span>Final</span>
+          <span class="legend-item"><span class="leg-dot normal"></span>Normal</span>
+          <span class="legend-item" style="color:var(--dim2);font-size:0.6rem">· 2x clic: fijar inicial/final · Arrastrar: mover</span>
+        </div>
+      </div>
+
+      <!-- CINTA DE TURING -->
+      <div class="panel" id="tapePanel">
+        <div class="panel-header">
+          <span class="panel-title">// CINTA DE TURING</span>
+          <div class="tape-controls-mini">
+            <button class="tape-mini-btn" onclick="stepBack()" title="Paso atrás" id="btnStepBack" disabled>◀ ATRÁS</button>
+            <button class="tape-mini-btn gold" onclick="stepForward()" title="Paso adelante" id="btnStep">▶ PASO</button>
+            <button class="tape-mini-btn green" onclick="runAll()" title="Ejecutar todo" id="btnRun">⚡ EJECUTAR</button>
+            <button class="tape-mini-btn" onclick="resetExec()" title="Reiniciar">↺ RESET</button>
+          </div>
+        </div>
+        <div class="tape-wrap">
+          <div class="tape-row" id="tapeRow"></div>
+          <div class="tape-head-row" id="tapeHeadRow"></div>
+        </div>
+        <div class="tape-info-row">
+          <div class="tape-stat"><span class="ts-label">ESTADO</span><span class="ts-val" id="tsCurState">—</span></div>
+          <div class="tape-stat"><span class="ts-label">PASO</span><span class="ts-val" id="tsStep">0</span></div>
+          <div class="tape-stat"><span class="ts-label">SÍMBOLO</span><span class="ts-val" id="tsSymbol">—</span></div>
+          <div class="tape-stat"><span class="ts-label">ACCIÓN</span><span class="ts-val" id="tsAction">—</span></div>
+        </div>
+      </div>
+
+      <!-- CONSOLA -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">// CONSOLA DE EJECUCIÓN</span>
+          <button class="small-btn" onclick="clearConsole()">LIMPIAR</button>
+        </div>
+        <div class="console-wrap" id="consoleWrap">
+          <div class="console-line welcome">
+            <span class="cl-step">SYS</span>
+            <span class="cl-msg">Circufy Turing Machine v1.0 — Listo. Diseña tu máquina y ejecuta una cadena.</span>
+          </div>
+        </div>
+        <div id="resultBanner" class="result-banner hidden"></div>
+      </div>
+
+    </div>
+
+    <!-- COLUMNA DERECHA: Configuración -->
+    <div class="tm-col-side">
+
+      <!-- TRANSICIONES -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">// TRANSICIONES</span>
+          <span class="trans-count" id="transCount">0</span>
+        </div>
+
+        <div class="trans-form">
+          <div class="form-row">
+            <label>Estado actual</label>
+            <select id="fFrom" class="tm-select"></select>
+          </div>
+          <div class="form-row">
+            <label>Símbolo leído</label>
+            <select id="fRead" class="tm-select">
+              <option value="0">0</option>
+              <option value="1">1</option>
+              <option value="X">X</option>
+              <option value="Y">Y</option>
+              <option value="B">B (blanco)</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Escribir</label>
+            <select id="fWrite" class="tm-select">
+              <option value="0">0</option>
+              <option value="1">1</option>
+              <option value="X">X</option>
+              <option value="Y">Y</option>
+              <option value="B">B (blanco)</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Movimiento</label>
+            <div class="move-btns">
+              <button class="move-btn active" id="moveL" onclick="setMove('L')">◀ L</button>
+              <button class="move-btn" id="moveR" onclick="setMove('R')">R ▶</button>
+            </div>
+          </div>
+          <div class="form-row">
+            <label>Estado siguiente</label>
+            <select id="fTo" class="tm-select"></select>
+          </div>
+          <button class="add-trans-btn" onclick="addTransition()">＋ AGREGAR TRANSICIÓN</button>
+        </div>
+
+        <div class="trans-list" id="transList">
+          <div class="trans-empty">No hay transiciones. Agrega estados y define las reglas.</div>
+        </div>
+      </div>
+
+      <!-- ENTRADA Y EJECUCIÓN -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">// ENTRADA</span>
+        </div>
+        <div class="input-section">
+          <label class="input-label">Cadena de entrada</label>
+          <div class="input-wrap">
+            <input id="inputString" class="tm-input" type="text" placeholder="Ej: 0011" maxlength="40" oninput="validateInput(this)">
+            <div class="input-hint">Solo usa: 0, 1</div>
+          </div>
+          <div class="exec-btns">
+            <button class="exec-btn primary" onclick="initExecution()">▶ INICIAR EJECUCIÓN</button>
+            <button class="exec-btn secondary" onclick="resetExec()">↺ LIMPIAR</button>
+          </div>
+          <div class="speed-ctrl">
+            <label>Velocidad auto:</label>
+            <input type="range" id="speedRange" min="1" max="10" value="5" class="speed-slider">
+            <span id="speedLabel">5</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABLA DE TRANSICIONES -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">// TABLA δ</span>
+          <span style="font-size:0.6rem;color:var(--dim2)">Función de transición</span>
+        </div>
+        <div class="delta-table-wrap" id="deltaTableWrap">
+          <div class="trans-empty">Sin transiciones definidas.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="turing.js"></script>
+</body>
+</html>
