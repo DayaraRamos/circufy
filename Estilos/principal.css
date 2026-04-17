@@ -18,13 +18,45 @@
   --dim2: #2a5070;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { width: 100%; min-height: 100%; background: var(--bg); color: var(--text); font-family: 'Rajdhani', sans-serif; overflow-x: hidden; }
+/* ── RESET ── */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-#bgc { position: fixed; inset: 0; z-index: 0; opacity: 0.15; pointer-events: none; }
+html, body {
+  width: 100%;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  overflow-x: hidden;
+}
 
-/* ── PAGE ── */
-.page { position: relative; z-index: 1; padding: 20px; max-width: 1400px; margin: 0 auto; }
+/* ── VIDEO DE FONDO ── */
+#bg-video {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -2;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* ── OVERLAY OSCURO ── */
+.video-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, rgba(0,220,255,0.15), rgba(3,8,15,0.85));
+  z-index: -1;
+}
 
 /* ── CONTENEDOR CENTRAL ── */
 .main-container {
@@ -32,6 +64,8 @@ html, body { width: 100%; min-height: 100%; background: var(--bg); color: var(--
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  position: relative;
+  z-index: 1;
 }
 
 /* ── TARJETA PRINCIPAL ── */
@@ -49,6 +83,7 @@ html, body { width: 100%; min-height: 100%; background: var(--bg); color: var(--
   animation: fadeIn 0.8s ease;
 }
 
+/* ── EFECTO BRILLO ── */
 .main-card::before {
   content: "";
   position: absolute;
@@ -124,4 +159,16 @@ html, body { width: 100%; min-height: 100%; background: var(--bg); color: var(--
   background: var(--purple);
   color: #000;
   box-shadow: 0 0 15px var(--purple);
+}
+
+/* ── ANIMACIÓN ── */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
