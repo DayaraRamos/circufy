@@ -138,33 +138,13 @@ html, body {
   color: var(--dim2); 
   margin-left: auto; 
 }
-
-.status-dot { 
-  width: 8px; 
-  height: 8px; 
-  border-radius: 50%; 
-  border: 1px solid currentColor; 
-}
-
+.status-dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid currentColor; }
 .status-dot.idle { color: var(--dim2); }
-.status-dot.running { 
-  color: var(--gold); 
-  background: var(--gold); 
-  animation: blink 0.6s infinite; 
-}
-.status-dot.accepted { 
-  color: var(--green); 
-  background: var(--green); 
-}
-.status-dot.rejected { 
-  color: var(--red); 
-  background: var(--red); 
-}
+.status-dot.running { color: var(--gold); background: var(--gold); animation: blink 0.6s infinite; }
+.status-dot.accepted { color: var(--green); background: var(--green); }
+.status-dot.rejected { color: var(--red); background: var(--red); }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-@keyframes blink { 
-  0%, 100% { opacity: 1; } 
-  50% { opacity: 0.3; } 
-}
 
 /* ── PAGE ── */
 .page { 
@@ -531,7 +511,7 @@ html, body {
   align-items: center;
   gap: 8px;
   min-width: 70px;
-  padding: 12px;
+  padding: 12px 8px;
   background: rgba(0, 0, 0, 0.3);
   border: 1px solid var(--dim);
   position: relative;
@@ -602,9 +582,11 @@ html, body {
   color: var(--green);
   font-weight: 700;
   background: rgba(0, 255, 170, 0.1);
-  padding: 3px 8px;
+  padding: 4px 10px;
   border: 1px solid rgba(0, 255, 170, 0.3);
   font-family: 'Share Tech Mono', monospace;
+  text-align: center;
+  border-radius: 2px;
 }
 
 /* ── CONTROLS ── */

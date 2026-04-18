@@ -1,18 +1,22 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Circufy - Simulador de Máquina de Turing</title>
-  
+  <title>Circufy V3 - Simulador de Máquina de Turing</title>
+
   <!-- Fonts -->
   <link rel="icon" type="image/x-icon" href="Estilos/logoLink.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-  
+  <link
+    href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap"
+    rel="stylesheet">
+
   <link rel="stylesheet" href="Estilos/enigma.css">
 </head>
+
 <body>
   <!-- Background Canvas -->
   <canvas id="bgc"></canvas>
@@ -20,7 +24,7 @@
   <!-- Navbar -->
   <nav id="navbar">
     <div class="nav-logo">
-      <a href="principal.html" class="nav-logo-link">
+      <a href="#" class="nav-logo-link">
         <div class="nav-logo-text">CIRCUFY V3</div>
         <div class="nav-logo-sub">TURING MACHINE</div>
       </a>
@@ -33,13 +37,13 @@
     </div>
     <div class="nav-status">
       <div class="status-dot idle" id="statusDot"></div>
-    <span id="statusText"><a href="principal.html" class="nav-tab principal">Principal</a></span>
+      <span id="statusText"><a href="principal.html" class="nav-tab principal">Principal</a></span>
     </div>
   </nav>
 
   <!-- Main Page -->
   <div class="page">
-    
+
     <!-- Header -->
     <div class="tm-header">
       <div>
@@ -53,10 +57,10 @@
 
     <!-- Main Layout -->
     <div class="tm-layout">
-      
+
       <!-- LEFT COLUMN -->
       <div class="tm-col-main">
-        
+
         <!-- Input Message Panel -->
         <div class="panel">
           <div class="panel-header">
@@ -64,13 +68,7 @@
           </div>
           <div class="input-section">
             <div class="input-wrap">
-              <input 
-                type="text" 
-                id="inputMessage" 
-                class="tm-input" 
-                placeholder="ESCRIBE TU MENSAJE..."
-                value="HOLA"
-              />
+              <input type="text" id="inputMessage" class="tm-input" placeholder="ESCRIBE TU MENSAJE..." value="HOLA" />
               <div class="input-hint" id="charCount">4 caracteres → 4 reglas configurables</div>
             </div>
           </div>
@@ -164,7 +162,7 @@
 
       <!-- RIGHT COLUMN -->
       <div class="tm-col-side">
-        
+
         <!-- Animation Controls -->
         <div class="panel">
           <div class="panel-header">
@@ -231,4 +229,5 @@
 
   <script src="Funcion/enigma.js"></script>
 </body>
+
 </html>

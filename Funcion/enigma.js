@@ -13,6 +13,7 @@ const state = {
   characterRules: [],
   tapes: [],
   currentStep: 0,
+  subProgress: 0, // 0-1 progreso suave dentro del paso actual
   isAnimating: false,
   isPaused: false,
   animationSpeed: 500,
@@ -303,6 +304,7 @@ function initializeTapes() {
   });
   
   state.currentStep = 0;
+  state.subProgress = 0;
   renderTapes();
   log(`Cintas inicializadas: ${state.tapes.length} cintas creadas`, 'ok');
 }
@@ -320,34 +322,200 @@ function renderTapes() {
     const tapeDiv = document.createElement('div');
     tapeDiv.className = 'vertical-tape';
     
+    // Label de cinta
     const label = document.createElement('div');
     label.className = 'tape-label';
     label.textContent = `Cinta ${tapeIndex + 1}`;
     tapeDiv.appendChild(label);
     
-    // Show current step or first/last step
-    const currentStepIndex = Math.min(state.currentStep, tape.steps.length - 1);
-    const step = tape.steps[currentStepIndex];
+    // Calcular progreso de esta cinta
+    const progress = getTapeProgress(tapeIndex);
+    const isDone = isTapeDone(tapeIndex);
     
-    const slot = document.createElement('div');
-    slot.className = 'tape-slot';
+    // Obtener char original y calcular shift
+    const originalChar = tape.steps[0].char;
+    const finalChar = tape.finalChar;
+    const fromIndex = tape.steps[0].fromIndex;
+    const toIndex = tape.steps[0].toIndex;
     
-    if (state.currentStep < tape.steps.length && state.currentStep > 0) {
-      slot.classList.add('active');
-    } else if (state.currentStep >= tape.steps.length) {
-      slot.classList.add('final');
+    let shift = 0;
+    if (fromIndex !== -1 && toIndex !== -1) {
+      shift = toIndex - fromIndex;
+      // Normalizar shift para el camino más corto
+      if (shift > 13) shift -= 26;
+      if (shift < -13) shift += 26;
     }
     
-    slot.textContent = step.char;
-    tapeDiv.appendChild(slot);
+    // Dirección de la flecha
+    const dirArrow = shift > 0 ? '↓' : shift < 0 ? '↑' : '·';
+    const dirColor = shift < 0 ? '#ff8060' : shift > 0 ? 'var(--green)' : 'var(--dim2)';
     
+    // Arrow indicator
+    const arrow = document.createElement('div');
+    arrow.style.cssText = `
+      font-size: 14px;
+      color: ${dirColor};
+      margin-bottom: 4px;
+      letter-spacing: 1px;
+      font-weight: bold;
+    `;
+    arrow.textContent = dirArrow;
+    tapeDiv.appendChild(arrow);
+    
+    // Crear ventana de cinta con scrolling vertical
+    const tapeWindow = createTapeWindow(originalChar, fromIndex, toIndex, shift, progress, isDone);
+    tapeDiv.appendChild(tapeWindow);
+    
+    // Resultado final (debajo de la cinta)
+    const resultDiv = document.createElement('div');
+    resultDiv.style.cssText = `
+      margin-top: 8px;
+      font-size: 20px;
+      font-weight: bold;
+      height: 26px;
+      color: ${isDone ? 'var(--gold)' : 'rgba(255, 230, 0, 0.15)'};
+      text-shadow: ${isDone ? '0 0 8px rgba(255, 230, 0, 0.7)' : 'none'};
+      transition: all 0.3s;
+      font-family: 'Orbitron', monospace;
+    `;
+    resultDiv.textContent = isDone ? finalChar : '?';
+    tapeDiv.appendChild(resultDiv);
+    
+    // Label de regla
     const ruleLabel = document.createElement('div');
     ruleLabel.className = 'tape-rule';
     ruleLabel.textContent = tape.rule;
+    ruleLabel.style.marginTop = '6px';
     tapeDiv.appendChild(ruleLabel);
     
     els.tapesContainer.appendChild(tapeDiv);
   });
+}
+
+// ── CREATE TAPE WINDOW ──
+function createTapeWindow(char, fromIndex, toIndex, shift, progress, isDone) {
+  const CELL_HEIGHT = 38;
+  const VISIBLE_CELLS = 7;
+  const halfWindow = Math.floor(VISIBLE_CELLS / 2);
+  
+  // Si no es letra válida, mostrar estático
+  if (fromIndex === -1) {
+    const staticDiv = document.createElement('div');
+    staticDiv.style.cssText = `
+      width: 56px;
+      height: ${VISIBLE_CELLS * CELL_HEIGHT}px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--dim);
+      background: linear-gradient(180deg, #040404 0%, rgba(0, 255, 65, 0.03) 50%, #040404 100%);
+      font-size: 24px;
+      color: var(--dim2);
+      font-family: 'Orbitron', monospace;
+    `;
+    staticDiv.textContent = char;
+    return staticDiv;
+  }
+  
+  // Posición animada actual (fraccionaria)
+  const currentPos = fromIndex + (shift * progress);
+  const centerFloat = currentPos;
+  const centerInt = Math.floor(centerFloat);
+  const subPixel = (centerFloat - centerInt) * CELL_HEIGHT;
+  
+  // Crear container de ventana
+  const windowDiv = document.createElement('div');
+  windowDiv.style.cssText = `
+    width: 56px;
+    height: ${VISIBLE_CELLS * CELL_HEIGHT}px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(0, 255, 65, 0.15);
+    background: linear-gradient(180deg, #040404 0%, rgba(0, 255, 65, 0.03) 50%, #040404 100%);
+  `;
+  
+  // Fade superior e inferior
+  const fadeOverlay = document.createElement('div');
+  fadeOverlay.style.cssText = `
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    background: linear-gradient(180deg, 
+      #040404 0%, 
+      transparent 22%, 
+      transparent 78%, 
+      #040404 100%
+    );
+  `;
+  windowDiv.appendChild(fadeOverlay);
+  
+  // Container de celdas que se mueve
+  const scrollContainer = document.createElement('div');
+  scrollContainer.style.cssText = `
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    transform: translateY(${-subPixel - CELL_HEIGHT}px);
+    transition: transform 0.1s linear;
+  `;
+  
+  // Calcular rango de celdas a mostrar
+  const startPos = centerInt - halfWindow - 1;
+  const endPos = centerInt + halfWindow + 1;
+  
+  for (let pos = startPos; pos <= endPos; pos++) {
+    const alphabetIndex = ((pos % 26) + 260) % 26;
+    const letterChar = ALPHABET[alphabetIndex];
+    const distFromCenter = Math.abs(pos - centerFloat);
+    const isCenter = distFromCenter < 0.5;
+    const fade = Math.max(0, 1 - distFromCenter * 0.30);
+    
+    const cellDiv = document.createElement('div');
+    cellDiv.style.cssText = `
+      height: ${CELL_HEIGHT}px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: ${isCenter ? '24px' : Math.max(12, 16 - Math.floor(distFromCenter) * 2) + 'px'};
+      font-weight: ${isCenter ? 'bold' : 'normal'};
+      color: ${isCenter 
+        ? (isDone ? 'var(--gold)' : 'var(--green)') 
+        : `rgba(0, 255, 65, ${(fade * 0.5).toFixed(2)})`
+      };
+      background: ${isCenter 
+        ? (isDone ? 'rgba(255, 230, 0, 0.08)' : 'rgba(0, 255, 65, 0.08)')
+        : 'transparent'
+      };
+      border-top: ${isCenter ? (isDone ? '1px solid rgba(255, 230, 0, 0.4)' : '1px solid rgba(0, 255, 65, 0.4)') : 'none'};
+      border-bottom: ${isCenter ? (isDone ? '1px solid rgba(255, 230, 0, 0.4)' : '1px solid rgba(0, 255, 65, 0.4)') : 'none'};
+      letter-spacing: 1px;
+      user-select: none;
+      transition: color 0.1s, background 0.1s;
+      font-family: 'Orbitron', monospace;
+    `;
+    cellDiv.textContent = letterChar;
+    scrollContainer.appendChild(cellDiv);
+  }
+  
+  windowDiv.appendChild(scrollContainer);
+  return windowDiv;
+}
+
+// ── HELPER: Get tape progress ──
+function getTapeProgress(tapeIndex) {
+  if (state.currentStep > tapeIndex) return 1;
+  if (state.currentStep === tapeIndex) return Math.min(state.subProgress || 0, 1);
+  return 0;
+}
+
+// ── HELPER: Is tape done ──
+function isTapeDone(tapeIndex) {
+  return state.currentStep > tapeIndex || 
+         (state.currentStep === tapeIndex && (state.subProgress || 0) >= 0.999) ||
+         state.currentStep >= state.tapes.length;
 }
 
 // ── ANIMATION ──
@@ -358,6 +526,7 @@ function startAnimation() {
   state.isAnimating = true;
   state.isPaused = false;
   state.currentStep = 0;
+  state.subProgress = 0;
   
   updateStatus('running', 'Procesando...');
   log('Iniciando animación de cifrado', 'transition');
@@ -365,36 +534,61 @@ function startAnimation() {
   els.btnStart.classList.add('hidden');
   els.btnPause.classList.remove('hidden');
   
-  runAnimation();
+  runAnimationRAF();
 }
 
-function runAnimation() {
-  if (!state.isAnimating || state.isPaused) return;
+let lastTimestamp = null;
+let animationFrameId = null;
+
+function runAnimationRAF() {
+  if (!state.isAnimating || state.isPaused) {
+    lastTimestamp = null;
+    return;
+  }
   
-  const maxSteps = Math.max(...state.tapes.map(t => t.steps.length));
+  const maxSteps = state.tapes.length;
   
   if (state.currentStep >= maxSteps) {
     completeAnimation();
     return;
   }
   
-  state.animationInterval = setTimeout(() => {
-    state.currentStep++;
-    updateStepDisplay();
+  animationFrameId = requestAnimationFrame((timestamp) => {
+    if (!lastTimestamp) lastTimestamp = timestamp;
+    const deltaTime = timestamp - lastTimestamp;
+    lastTimestamp = timestamp;
+    
+    // Incrementar subProgress
+    state.subProgress += deltaTime / state.animationSpeed;
+    
+    if (state.subProgress >= 1) {
+      // Completar este paso y avanzar al siguiente
+      state.subProgress = 0;
+      state.currentStep++;
+      updateStepDisplay();
+      updateAlphabetHighlights();
+      
+      if (state.currentStep < maxSteps) {
+        log(`Paso ${state.currentStep}: Procesando caracteres`, 'transition');
+      }
+    }
+    
+    // Renderizar las cintas con el progreso actual
     renderTapes();
-    updateAlphabetHighlights();
     
-    log(`Paso ${state.currentStep}: Procesando caracteres`, 'transition');
-    
-    runAnimation();
-  }, state.animationSpeed);
+    runAnimationRAF();
+  });
 }
 
 function pauseAnimation() {
   state.isPaused = !state.isPaused;
   
   if (state.isPaused) {
-    clearTimeout(state.animationInterval);
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = null;
+    }
+    lastTimestamp = null;
     updateStatus('idle', 'Pausado');
     els.btnPause.textContent = '▶ REANUDAR';
     log('Animación pausada', 'info');
@@ -402,7 +596,8 @@ function pauseAnimation() {
     updateStatus('running', 'Procesando...');
     els.btnPause.textContent = '⏸ PAUSAR';
     log('Animación reanudada', 'info');
-    runAnimation();
+    lastTimestamp = null;
+    runAnimationRAF();
   }
 }
 
@@ -411,16 +606,39 @@ function stepForward() {
     initializeTapes();
     state.isAnimating = true;
     state.isPaused = true;
+    state.currentStep = 0;
+    state.subProgress = 0;
   }
   
-  const maxSteps = Math.max(...state.tapes.map(t => t.steps.length));
+  const maxSteps = state.tapes.length;
   
   if (state.currentStep < maxSteps) {
-    state.currentStep++;
-    updateStepDisplay();
-    renderTapes();
-    updateAlphabetHighlights();
-    log(`Paso ${state.currentStep}: Avance manual`, 'info');
+    // Animar suavemente el subProgress de 0 a 1
+    const startTime = performance.now();
+    const animateSub = (timestamp) => {
+      const elapsed = timestamp - startTime;
+      const progress = Math.min(elapsed / 400, 1);
+      
+      state.subProgress = progress;
+      renderTapes();
+      updateAlphabetHighlights();
+      
+      if (progress < 1) {
+        requestAnimationFrame(animateSub);
+      } else {
+        state.currentStep++;
+        state.subProgress = 0;
+        updateStepDisplay();
+        renderTapes();
+        log(`Paso ${state.currentStep}: Avance manual`, 'info');
+        
+        if (state.currentStep >= maxSteps) {
+          completeAnimation();
+        }
+      }
+    };
+    
+    requestAnimationFrame(animateSub);
   } else {
     completeAnimation();
   }
@@ -429,7 +647,14 @@ function stepForward() {
 function completeAnimation() {
   state.isAnimating = false;
   state.isPaused = false;
-  clearTimeout(state.animationInterval);
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+  lastTimestamp = null;
+  
+  state.currentStep = state.tapes.length;
+  state.subProgress = 1;
   
   const finalText = state.tapes.map(t => t.finalChar).join('');
   displayResult(finalText);
@@ -440,6 +665,8 @@ function completeAnimation() {
   els.btnStart.classList.remove('hidden');
   els.btnPause.classList.add('hidden');
   
+  renderTapes(); // Final render
+  
   showToast('¡Cifrado completado!', 'ok');
 }
 
@@ -448,16 +675,27 @@ function updateAlphabetHighlights() {
   const toLetters = [];
   const currentLetters = [];
   
-  state.tapes.forEach(tape => {
-    if (state.currentStep < tape.steps.length) {
-      const step = tape.steps[state.currentStep];
-      if (step.fromIndex !== -1) {
-        fromLetters.push(ALPHABET[step.fromIndex]);
-        toLetters.push(ALPHABET[step.toIndex]);
-        currentLetters.push(step.char);
-      }
+  // Solo destacar la cinta activa actual
+  if (state.currentStep < state.tapes.length) {
+    const tape = state.tapes[state.currentStep];
+    const step = tape.steps[0]; // Primer paso tiene la info from/to
+    
+    if (step.fromIndex !== -1) {
+      fromLetters.push(ALPHABET[step.fromIndex]);
+      toLetters.push(ALPHABET[step.toIndex]);
+      
+      // Calcular letra actual basada en subProgress
+      const shift = step.toIndex - step.fromIndex;
+      let normalizedShift = shift;
+      if (normalizedShift > 13) normalizedShift -= 26;
+      if (normalizedShift < -13) normalizedShift += 26;
+      
+      const currentFloat = step.fromIndex + (normalizedShift * state.subProgress);
+      const currentIdx = Math.round(currentFloat);
+      const normalizedIdx = ((currentIdx % 26) + 260) % 26;
+      currentLetters.push(ALPHABET[normalizedIdx]);
     }
-  });
+  }
   
   state.highlightedLetters = { from: fromLetters, to: toLetters, current: currentLetters };
   updateAlphabetBoard();
