@@ -683,7 +683,7 @@ function loadPreset(name) {
       { id: 'q3', name: 'q3', x: 560, y: 200, isInitial: false, isFinal: false },
       { id: 'qf', name: 'qf', x: 560, y: 80, isInitial: false, isFinal: true },
     ];
-    stateId = 5;
+    nextStateId = 5;
     transitions = [
       { from: 'q0', read: '0', write: 'X', move: 'R', to: 'q1' },
       { from: 'q1', read: '0', write: '0', move: 'R', to: 'q1' },
@@ -747,7 +747,7 @@ function loadPreset(name) {
       { id: 'q1', name: 'q1', x: 280, y: 200, isInitial: false, isFinal: false },
       { id: 'qf', name: 'qf', x: 480, y: 200, isInitial: false, isFinal: true },
     ];
-    stateId = 3;
+    nextStateId = 3;
     transitions = [
       { from: 'q0', read: '1', write: '1', move: 'R', to: 'q0' },
       { from: 'q0', read: '0', write: '1', move: 'R', to: 'q1' },
