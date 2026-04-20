@@ -739,8 +739,8 @@ html, body {
   background: var(--purple); 
   color: #fff; 
   font-family: 'Share Tech Mono', monospace;
-  font-size: 0.6rem; 
-  padding: 2px 8px; 
+  font-size: 0.9rem; 
+  padding: 9px 17px; 
   border-radius: 2px;
 }
 
