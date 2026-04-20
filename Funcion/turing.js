@@ -726,66 +726,89 @@ function loadPreset(name) {
     document.getElementById('inputString').value = '0011';
     showToast('Cargado: 0ⁿ1ⁿ — prueba con "0011", "000111"', 'ok');
 
+
   } else if (name === 'palindrome') {
-    // ── PALÍNDROMO BINARIO — reescrito desde cero ──────────
-    // Estrategia: compara símbolo del extremo izquierdo con el del extremo derecho,
-    // marcando con X (vino de 0) o Y (vino de 1). Repite hasta que no queden
-    // símbolos sin marcar o solo quede uno (longitud impar).
+    // ── PALÍNDROMO BINARIO v4 — dos marcas distintas ────────
     //
-    // Estados:
-    //  q0 → leer y recordar símbolo izquierdo (0→q_L0, 1→q_L1)
-    //  q_L0 → avanzar a la derecha recordando que leímos 0
-    //  q_L1 → avanzar a la derecha recordando que leímos 1
-    //  q_R0 → comparar extremo derecho con 0 guardado
-    //  q_R1 → comparar extremo derecho con 1 guardado
-    //  q_back → regresar al inicio (izquierda)
-    //  qf  → aceptado
+    // MARCAS:
+    //   X = extremo IZQUIERDO ya procesado en esta ronda
+    //   Z = extremo DERECHO ya procesado en esta ronda
+    //
+    // ESTADOS:
+    //   q0   → leer extremo izquierdo sin marcar
+    //   qL0  → viajar derecha recordando que leímos 0
+    //   qL1  → viajar derecha recordando que leímos 1
+    //   qR0  → comparar extremo derecho buscando 0
+    //   qR1  → comparar extremo derecho buscando 1
+    //   qbk  → regresar a la izquierda
+    //   qf   → aceptado
+    //
+    // REGLA CLAVE:
+    //   qL0/qL1 saltan 0, 1, X  PERO SE DETIENEN en Z o B
+    //   Z es la "frontera derecha" — indica que no hay más símbolos
+    //   sin procesar a la derecha de esa posición.
+    //   Así 1101: ronda2 qL1 llega a Z antes de encontrar el 0 → qR1
+    //   lee 0 → no hay transición para qR1+0 → RECHAZA ✓
+    //
     states = [
-      { id:'q0',   name:'q0',   x:100, y:200, isInitial:true,  isFinal:false },
-      { id:'qL0',  name:'qL0',  x:230, y:120, isInitial:false, isFinal:false },
-      { id:'qL1',  name:'qL1',  x:230, y:280, isInitial:false, isFinal:false },
-      { id:'qR0',  name:'qR0',  x:400, y:120, isInitial:false, isFinal:false },
-      { id:'qR1',  name:'qR1',  x:400, y:280, isInitial:false, isFinal:false },
-      { id:'qbk',  name:'qbk',  x:560, y:200, isInitial:false, isFinal:false },
-      { id:'qf',   name:'qf',   x:700, y:200, isInitial:false, isFinal:true  },
+      { id:'q0',  name:'q0',  x:100, y:200, isInitial:true,  isFinal:false },
+      { id:'qL0', name:'qL0', x:250, y:110, isInitial:false, isFinal:false },
+      { id:'qL1', name:'qL1', x:250, y:290, isInitial:false, isFinal:false },
+      { id:'qR0', name:'qR0', x:430, y:110, isInitial:false, isFinal:false },
+      { id:'qR1', name:'qR1', x:430, y:290, isInitial:false, isFinal:false },
+      { id:'qbk', name:'qbk', x:600, y:200, isInitial:false, isFinal:false },
+      { id:'qf',  name:'qf',  x:730, y:200, isInitial:false, isFinal:true  },
     ];
     nextStateId = 7;
     transitions = [
-      // q0: leer símbolo izquierdo y marcarlo
+
+      // q0: leer extremo izquierdo
       { from:'q0',  read:'0', write:'X', move:'R', to:'qL0' },
       { from:'q0',  read:'1', write:'X', move:'R', to:'qL1' },
-      // cadena vacía o toda marcada → aceptar
+      // Solo quedan marcas o blanco → todo fue comparado → ACEPTAR
       { from:'q0',  read:'X', write:'X', move:'R', to:'qf'  },
+      { from:'q0',  read:'Z', write:'Z', move:'R', to:'qf'  },
       { from:'q0',  read:'B', write:'B', move:'R', to:'qf'  },
 
-      // qL0 / qL1: avanzar hasta el extremo derecho (saltando todo)
+      // qL0: avanzar a la derecha (recuerda que leímos 0)
+      // Salta símbolos reales y marcas X
       { from:'qL0', read:'0', write:'0', move:'R', to:'qL0' },
       { from:'qL0', read:'1', write:'1', move:'R', to:'qL0' },
       { from:'qL0', read:'X', write:'X', move:'R', to:'qL0' },
-      { from:'qL0', read:'B', write:'B', move:'L', to:'qR0' },  // llegó al blanco derecho
+      // Se detiene ante B → último símbolo real está 1 posición atrás
+      { from:'qL0', read:'B', write:'B', move:'L', to:'qR0' },
+      // Se detiene ante Z → frontera derecha alcanzada, retroceder para comparar
+      { from:'qL0', read:'Z', write:'Z', move:'L', to:'qR0' },
 
+      // qL1: igual pero recuerda 1
       { from:'qL1', read:'0', write:'0', move:'R', to:'qL1' },
       { from:'qL1', read:'1', write:'1', move:'R', to:'qL1' },
       { from:'qL1', read:'X', write:'X', move:'R', to:'qL1' },
-      { from:'qL1', read:'B', write:'B', move:'L', to:'qR1' },  // llegó al blanco derecho
+      { from:'qL1', read:'B', write:'B', move:'L', to:'qR1' },
+      { from:'qL1', read:'Z', write:'Z', move:'L', to:'qR1' },
 
-      // qR0: comparar con 0 guardado
-      // El símbolo derecho DEBE ser 0 (sin marcar)
-      { from:'qR0', read:'0', write:'X', move:'L', to:'qbk' },  // ✓ coincide
-      { from:'qR0', read:'X', write:'X', move:'L', to:'qf'  },  // solo quedaba 1 símbolo (impar) → aceptar
+      // qR0: el cabezal está sobre el candidato derecho, esperamos 0
+      { from:'qR0', read:'0', write:'Z', move:'L', to:'qbk' },   // ✓ coincide
+      // Si encuentra X o Z aquí → solo quedaba símbolo central impar → ACEPTAR
+      { from:'qR0', read:'X', write:'X', move:'R', to:'qf'  },
+      { from:'qR0', read:'Z', write:'Z', move:'R', to:'qf'  },
+      // Si lee 1 → no hay transición → RECHAZA
 
-      // qR1: comparar con 1 guardado
-      { from:'qR1', read:'1', write:'X', move:'L', to:'qbk' },  // ✓ coincide
-      { from:'qR1', read:'X', write:'X', move:'L', to:'qf'  },  // solo quedaba 1 símbolo (impar) → aceptar
+      // qR1: esperamos 1
+      { from:'qR1', read:'1', write:'Z', move:'L', to:'qbk' },   // ✓ coincide
+      { from:'qR1', read:'X', write:'X', move:'R', to:'qf'  },
+      { from:'qR1', read:'Z', write:'Z', move:'R', to:'qf'  },
+      // Si lee 0 → no hay transición → RECHAZA
 
-      // qbk: regresar al extremo izquierdo (al primer X de la izquierda + 1)
+      // qbk: regresar al extremo izquierdo
       { from:'qbk', read:'0', write:'0', move:'L', to:'qbk' },
       { from:'qbk', read:'1', write:'1', move:'L', to:'qbk' },
-      { from:'qbk', read:'X', write:'X', move:'R', to:'q0'  },  // encontró la marca → volver a q0
-      { from:'qbk', read:'B', write:'B', move:'R', to:'q0'  },  // inicio de cinta → volver a q0
+      { from:'qbk', read:'Z', write:'Z', move:'L', to:'qbk' },
+      { from:'qbk', read:'X', write:'X', move:'R', to:'q0'  },   // primera X → q0
+      { from:'qbk', read:'B', write:'B', move:'R', to:'q0'  },   // inicio cinta → q0
     ];
     document.getElementById('inputString').value = '0110';
-    showToast('✅ Palíndromo cargado — prueba: 0110, 1001, 0100 (no palíndromo)', 'ok');
+    showToast('✅ Palíndromo v4 — prueba: 0110✓ 1001✓ 101✓ 1101✗ 0100✗', 'ok');
 
   } else if (name === 'unary') {
     // ── Suma unaria: 1^a 0 1^b → 1^(a+b) ─────────────────
