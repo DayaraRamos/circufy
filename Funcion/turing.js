@@ -1,6 +1,6 @@
 // ============================================================
 // Circufy — Máquina de Turing
-// Archivo: turing.js  |  v2 FIXED
+// Archivo: turing.js  |  v2 
 // ============================================================
 
 // ── BG PARTICLES ─────────────────────────────────────────────
@@ -12,6 +12,10 @@ const bpts = Array.from({ length: 40 }, () => ({
   vx: (Math.random() - .5) * .2, vy: (Math.random() - .5) * .2,
   r: Math.random() * .7 + .3
 }));
+
+//Esta función crea un fondo animado con partículas que se mueven y se conectan entre sí. 
+//Se ejecuta continuamente usando requestAnimationFrame para actualizar la posición de las 
+// partículas y dibujarlas en el canvas.
 (function bl() {
   bgx.clearRect(0, 0, bgc.width, bgc.height);
   bpts.forEach(p => {
@@ -34,14 +38,14 @@ const bpts = Array.from({ length: 40 }, () => ({
 })();
 window.addEventListener('resize', () => { bgc.width = window.innerWidth; bgc.height = window.innerHeight; });
 
-// ── STATE ────────────────────────────────────────────────────
-let states      = [];  // {id, name, x, y, isInitial, isFinal}
-let transitions = [];  // {from, read, write, move, to}
-let nextStateId = 0;
+// ── ESTADOS ────────────────────────────────────────────────────
+let states      = [];  // Aqui es donde se guardan los estados de la máquina. Cada estado es un objeto con las siguientes propiedades: almacenadas en las lista
+let transitions = [];  // Aqui es donde se guardan las transiciones de la máquina. Cada transición es un objeto con las siguientes propiedades: almacenadas en la lista
+let nextStateId = 0; // Contador para asignar IDs únicos a los estados (q0, q1, q2, ...)
 
 // Ejecución
-let tape        = [];
-let head        = 0;
+let tape        = []; // Representa la cinta de la máquina de Turing. Es un array de símbolos (caracteres). Inicialmente vacío, se llenará con la cadena de entrada rodeada de 'B' (blanco).
+let head        = 0; // Representa la posición actual del cabezal de lectura/escritura en la cinta. Es un índice que apunta a una posición en el array 'tape'. Inicialmente 0, se moverá a la izquierda o derecha según las transiciones definidas.
 let curState    = null;
 let stepNum     = 0;
 let execHistory = [];
@@ -57,7 +61,7 @@ let transFrom    = null;
 let selectedMove = 'L';
 let activeTransIdx = -1;
 
-// ── DIAGRAM CANVAS ───────────────────────────────────────────
+// ── DIAGRAMA CANVAS ───────────────────────────────────────────
 const dc   = document.getElementById('diagramCanvas');
 const dctx = dc.getContext('2d');
 
@@ -442,7 +446,9 @@ function renderTape() {
   document.getElementById('tsSymbol').textContent   = tape[head] || 'B';
 }
 
-// ── EXECUTION ────────────────────────────────────────────────
+// ── EJECUCION ────────────────────────────────────────────────
+//Esta funcion solo permite ingresar 0 y 1 en el campo de texto para la cadena de entrada. 
+//Si el usuario intenta ingresar cualquier otro carácter no lo acepta
 function validateInput(el) {
   el.value = el.value.replace(/[^01]/g, '');
   el.classList.remove('error');
