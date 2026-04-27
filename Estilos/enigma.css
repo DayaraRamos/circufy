@@ -277,7 +277,7 @@ html, body {
 }
 
 .input-hint { 
-  font-size: 0.58rem; 
+  font-size: 0.85rem; 
   color: var(--dim2); 
 }
 
@@ -323,7 +323,7 @@ html, body {
 }
 
 .form-row label { 
-  font-size: 0.65rem; 
+  font-size: 1.0rem; 
   color: var(--dim2); 
   min-width: 100px; 
   font-family: 'Roboto', sans-serif; 
@@ -336,7 +336,7 @@ html, body {
   border: 1px solid var(--dim);
   color: var(--neon); 
   font-family: 'Roboto', sans-serif; 
-  font-size: 0.68rem;
+  font-size: 0.80rem;
   cursor: pointer; 
   outline: none;
 }
